@@ -25,6 +25,7 @@ class ProvincialGate(Gate):
             self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'Boarded flight successfully')
 
         else:
+            # todo logging boarding might be not needed.
             print(f"No seats available at time {current_time}.")
             self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'No seats available')
             if passenger.arrival_time_at_airport <= current_flight.departure_time - 90 * 60:

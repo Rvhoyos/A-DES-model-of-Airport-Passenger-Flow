@@ -58,21 +58,8 @@ class Simulation:
         print(f"Simulation starting at time {self.env.now}")
         self.env.process(self.generate_passenger_arrivals())
         self.env.process(self.airport.regional_gate.process_queue())  # Process passengers in queue
-
         self.env.run(until=self.simulation_time)
-
-        # Save and reset logs after the simulation completes
-        num_days = int((self.simulation_time + 1) / 86400)
-        for day in range(1, num_days + 1):
-            print(f"Saving logs for day {day}")
-            for counter in self.airport.coach_counters + self.airport.business_class_counters:
-                # todo fix current logs
-                counter.logger.save_daily_log(day)
-                counter.logger.reset_daily_log()
-                # todo Save logs for security screening
-                # todo save logs for gates
-                print(f"Simulation ended at time {self.env.now}")
-
+        print(f"Simulation ended at time {self.env.now}")
 
 # Main function to start the simulation
 def main():
