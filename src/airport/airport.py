@@ -25,6 +25,7 @@ class Airport:
             regional_gate (RegionalGate): The gate for regional flights.
             provincial_gate (ProvincialGate): The gate for provincial flights.
         """
+
     def __init__(self, env, simulation_time, num_business_counters, num_coach_counters, logger):
         """
                 Initializes the airport simulation.
@@ -39,26 +40,30 @@ class Airport:
         self.logger = logger
 
         # Pass the logger to each component of the airport
-        self.business_class_counters = [BusinessClassCounter(env, self.logger) for _ in range(num_business_counters)]  # 1 counter for business class
+        self.business_class_counters = [BusinessClassCounter(env, self.logger) for _ in
+                                        range(num_business_counters)]  # 1 counter for business class
         self.coach_counters = [CoachCounter(env, logger) for _ in range(num_coach_counters)]  # 3 counters for coach
 
         self.security_screening = SecurityScreening(env, logger)
 
         self.regional_gate = RegionalGate(env, logger, simulation_time)  # Pass simulation_time to RegionalGate
         self.provincial_gate = ProvincialGate(env, logger, simulation_time)  # Pass simulation_time to ProvincialGate
+        self.start_log_saving_process(86400)  # 86400 seconds in a day / log interval
 
+    # todo call object.logger.save in this method?
     def process_passenger(self, passenger):
         """
         Processes a passenger through the airport's check-in, security, and gate.
         Args:
             passenger (Passenger): The passenger to process.
             """
-        print(f"Processing passenger {passenger}")
+        print(f"Processing passenger {passenger.arrival_time}")
         self.logger.log_event(passenger.arrival_time, 'Process Start', self.env.now,
-                              f"Starting process for {passenger}")
+                              f"Starting process for passenger")
         # Determine which counter to use based on passenger type
         if passenger.seat_type == 'business':
-            counter = self.business_class_counters[0]  # Assuming a single business class counter
+            counter = self.business_class_counters[
+                0]  # Assuming a single business class counter todo implement allocation policy for dynamic counter amount.
         else:
             counter = self.coach_counters[0]
         # Proceed with subprocess for passenger check-in
@@ -74,3 +79,24 @@ class Airport:
         else:
             yield self.env.process(self.provincial_gate.handle_passenger(passenger))
 
+    def save_logs(self, day):
+        """
+        Saves the daily logs for the specified day.
+        """
+        self.logger.save_daily_log(day)
+        self.logger.reset_daily_log()
+
+    def start_log_saving_process(self, interval):
+        """
+        Starts the log-saving process to save logs periodically.
+        """
+        self.env.process(self.save_logs_periodically(interval))
+
+    def save_logs_periodically(self, interval):
+        """
+        A process that saves logs at regular intervals (e.g., daily).
+        """
+        while True:
+            yield self.env.timeout(interval)
+            day = int(self.env.now / interval)
+            self.save_logs(day)
