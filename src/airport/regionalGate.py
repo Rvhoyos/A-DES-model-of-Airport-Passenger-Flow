@@ -25,8 +25,12 @@ class RegionalGate(Gate):
             current_flight.board_passenger(passenger)
             print(
                 f"A passenger boards the regional flight departing {current_flight.departure_time}, at time {current_time}.")
+            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now,
+                                  'Boarded regional flight successfully')
         else:
             print(f"Flight at {current_flight.departure_time} is full. A passenger is queued for next flight.")
+            self.logger.log_event(passenger.arrival_time, 'Queue', self.env.now,
+                                  'Passenger queued for next regional flight')
             passenger.queue_time = current_time
             yield self.queue.put(passenger)
 
@@ -45,5 +49,6 @@ class RegionalGate(Gate):
                 current_flight.board_passenger(passenger)
                 print(
                     f"A queued passenger boards the regional flight departing {current_flight.departure_time}, at time {current_time}.")
+                self.logger.log_event(passenger.arrival_time, 'Boarding from Queue', self.env.now, 'Boarded regional flight from queue')
             else:
                 yield self.env.timeout(1)  # Wait before checking the queue again
