@@ -43,13 +43,12 @@ class Simulation:
 
             next_arrival_time = max(next_arrival_time, 0)  # Ensure non-negative time
             yield self.env.timeout(next_arrival_time)
-
             arrival_time = self.env.now
+            self.logger.log_event(arrival_time, 'Arrival', arrival_time,
+                                  'Passenger arrived')  # Log right after determining arrival_time
             gate_type = 'commuter' if is_commuter else 'provincial'
             passenger = Passenger(gate_type, seat_type, arrival_time)
-            self.env.process(self.airport.process_passenger(passenger))
-            # Log passenger arrival
-            self.logger.log_event(arrival_time, 'Arrival', self.env.now, f'Passenger arrived')
+            self.env.process(self.airport.process_passenger(passenger))  # Start processing the passenger
 
     def run(self):
         """
