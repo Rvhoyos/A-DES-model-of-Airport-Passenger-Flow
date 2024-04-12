@@ -2,6 +2,7 @@ import pandas as pd
 import os
 
 
+# Parses log files from a directory and returns a DataFrame
 def parse_logs(log_directory):
     all_logs = pd.DataFrame()  # DataFrame to store all log data
 

@@ -15,10 +15,15 @@ class Flight:
 
     def board_passenger(self, passenger):
         seat_type = passenger.seat_type
-        if self.available_seats[seat_type] > 0:
+        if self.available_seats[seat_type] > 0: # Check if there are available seats of the passenger type
             self.available_seats[seat_type] -= 1
             return True
         return False
+
+    def departure_log(self, logger):
+        print(f"Flight {self.number} is departing at time {self.departure_time}")  # New print statement
+        details = f'Flight {self.number} departed with {self.available_seats} seats left out of {self.total_seats}'
+        logger.log_event(self.departure_time, 'Flight Departure', self.departure_time, details)
 
     def __str__(self):
         return f"Flight({self.flight_type}, {self.available_seats})"

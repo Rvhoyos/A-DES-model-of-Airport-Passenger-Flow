@@ -35,8 +35,8 @@ class RegionalGate(Gate):
         super().__init__(env, logger, simulation_time)
         self.flight_schedule = self.set_schedule(simulation_time)
         self.queue = simpy.Store(env)
-        RegionalGate.number_of_gates += 1
-        self.gate_name = f"Regional Gate {RegionalGate.number_of_gates}"
+        RegionalGate.number_of_regional_gates += 1
+        self.gate_name = f"Regional Gate {RegionalGate.number_of_regional_gates}"
 
 
     def set_schedule(self, simulation_time):
@@ -49,6 +49,8 @@ class RegionalGate(Gate):
     def handle_passenger(self, passenger):
         current_time = self.env.now
         current_flight = self.find_current_flight(current_time)
+        self.check_flight_departure()  # Check if the current flight should depart
+        print(f"Handling regional passenger at time {self.env.now}")  # Debugging print statement
 
         if current_flight and current_flight.available_seats['coach'] > 0:
             current_flight.board_passenger(passenger)
