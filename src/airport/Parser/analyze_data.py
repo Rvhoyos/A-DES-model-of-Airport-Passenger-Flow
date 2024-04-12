@@ -42,9 +42,11 @@ def main():
 
     print("Passenger Service Times Statistics:")
     print(passenger_service_stats)
+    passenger_service_stats.to_csv(analytics_directory + '\\passenger_service_times_stats.csv')
 
     print("\nEvent Type Service Times Statistics:")
     print(event_service_stats)
+    passenger_service_stats.to_csv(analytics_directory + '\\event_service_times_stats.csv')
 
 
 if __name__ == "__main__":
