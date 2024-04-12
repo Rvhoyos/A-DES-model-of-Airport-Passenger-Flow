@@ -3,12 +3,41 @@ import simpy
 from src.airport.flight import Flight
 from src.airport.gate import Gate
 
+"""
+Abstract base class for an airport gate. Subclasses should implement specific
+behaviors for regional and provincial gates.
+
+Attributes:
+    env (simpy.Environment): The simulation environment.
+    current_flight (Flight): The current flight at the gate.
+    schedule (list): The schedule of flights at the gate.
+    logger (Logger): Logger instance for event logging.
+"""
+
 
 class RegionalGate(Gate):
+    number_of_regional_gates = 0  # Class variable to keep track of the number of Regional gates
+    """
+    Represents a regional gate at an airport. Inherits from the Gate class.
+
+    Attributes:
+        queue (simpy.Store): Queue of passengers waiting for the next flight.
+    """
     def __init__(self, env, logger, simulation_time):
+        """
+        Initializes the regional gate with a simulation environment, a flight schedule, and a queue.
+
+        Args:
+            env (simpy.Environment): The simulation environment.
+            logger (Logger): Logger instance for event logging.
+            simulation_time (int): Total simulation time in seconds.
+        """
         super().__init__(env, logger, simulation_time)
-        self.flight_schedule = self.set_schedule(simulation_time)  # todo round to a day?
+        self.flight_schedule = self.set_schedule(simulation_time)
         self.queue = simpy.Store(env)
+        RegionalGate.number_of_gates += 1
+        self.gate_name = f"Regional Gate {RegionalGate.number_of_gates}"
+
 
     def set_schedule(self, simulation_time):
         num_days = int(simulation_time / 86400)  # Convert simulation time to days
@@ -49,6 +78,7 @@ class RegionalGate(Gate):
                 current_flight.board_passenger(passenger)
                 print(
                     f"A queued passenger boards the regional flight departing {current_flight.departure_time}, at time {current_time}.")
-                self.logger.log_event(passenger.arrival_time, 'Boarding from Queue', self.env.now, 'Boarded regional flight from queue')
+                self.logger.log_event(passenger.arrival_time, 'Boarding from Queue', self.env.now,
+                                      'Boarded regional flight from queue')
             else:
                 yield self.env.timeout(1)  # Wait before checking the queue again

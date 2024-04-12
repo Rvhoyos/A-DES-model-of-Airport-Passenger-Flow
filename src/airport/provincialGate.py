@@ -4,6 +4,7 @@ from logger import Logger
 
 
 class ProvincialGate(Gate):
+    number_of_provincial_gates = 0  # Class variable to keep track of the number of Provincial gates
     def __init__(self, env, logger, simulation_time):
         super().__init__(env, logger,simulation_time)
         self.flight_schedule = self.set_schedule(simulation_time)  # Generate schedule for 7 days
