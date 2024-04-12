@@ -17,8 +17,8 @@ def parse_logs(log_directory):
 def main():
     log_directory = 'C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'
     parsed_data = parse_logs(log_directory)
-    print(parsed_data.head(25))
-    print(parsed_data.tail(25))
+    print(parsed_data.head(3))
+    print(parsed_data.tail(3))
 
 if __name__ == "__main__":
     main()
