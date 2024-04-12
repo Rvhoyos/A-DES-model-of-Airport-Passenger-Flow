@@ -34,7 +34,7 @@ class RegionalGate(Gate):
         """
         super().__init__(env, logger, simulation_time)
         self.flight_schedule = self.set_schedule(simulation_time)
-        self.queue = simpy.Store(env)
+        self.queue = simpy.Store(env) # Simpy store to hold passengers in queue
         RegionalGate.number_of_regional_gates += 1
         self.gate_name = f"Regional Gate {RegionalGate.number_of_regional_gates}"
 
@@ -47,23 +47,32 @@ class RegionalGate(Gate):
         return self.flight_schedule
 
     def handle_passenger(self, passenger):
-        current_time = self.env.now
-        current_flight = self.find_current_flight(current_time)
+        start_time = self.env.now  # Time when handling starts
+        current_flight = self.find_current_flight(start_time)
         self.check_flight_departure()  # Check if the current flight should depart
-        print(f"Handling regional passenger at time {self.env.now}")  # Debugging print statement
+
+        print(f"Handling regional passenger at time {start_time}")  # Debugging print statement
 
         if current_flight and current_flight.available_seats['coach'] > 0:
             current_flight.board_passenger(passenger)
+            service_time = self.env.now - start_time  # Calculate total service time since arrival to boarding
             print(
-                f"A passenger boards the regional flight departing {current_flight.departure_time}, at time {current_time}.")
+                f"A passenger boards the regional flight departing {current_flight.departure_time}, at time {start_time}. Service Time: {service_time} seconds")
             self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now,
-                                  'Boarded regional flight successfully')
+                                  f'Boarded regional flight successfully. Service Time: {service_time} seconds')
         else:
+            # todo Queue never gets used, Number of flights are DRASTICALLY bigger then number of passengers.... should not be the case.
+            # Last output was:
+            #   Toal Number of Passengers: 259
+            #   Total number of flights: 336
             print(f"Flight at {current_flight.departure_time} is full. A passenger is queued for next flight.")
+            passenger.queue_time = self.env.now
+            yield self.queue.put(passenger)  # Wait until the passenger is processed from the queue
+            waiting_time = start_time - passenger.queue_time  # Calculate waiting time
+            print(
+                f"Passenger {passenger.arrival_time} was queued and waited {waiting_time} seconds,before boarding.")
             self.logger.log_event(passenger.arrival_time, 'Queue', self.env.now,
-                                  'Passenger queued for next regional flight')
-            passenger.queue_time = current_time
-            yield self.queue.put(passenger)
+                                  f'Passenger queued for next regional flight. Waiting Time: {waiting_time} seconds')
 
     def process_queue(self):
         while True:
