@@ -14,11 +14,38 @@ def parse_logs(log_directory):
     return all_logs
 
 
+def analyze_passenger_service_times(filepath):
+    df = pd.read_csv(filepath)
+    # Ensure 'Times' column is a list of numeric values
+    df['Times'] = df['Times'].apply(lambda x: [float(t) for t in eval(x)])
+    # Calculate service time for each passenger
+    service_times = df['Times'].apply(lambda times: max(times) - min(times))
+    return service_times.describe()
+
+def analyze_event_service_times(filepath):
+    df = pd.read_csv(filepath)
+    # Convert 'Time' to float for numerical operations
+    df['Time'] = df['Time'].astype(float)
+    # Group by 'Event Type' and calculate statistics for each type
+    stats = df.groupby('Event Type')['Time'].agg(['mean', 'std', 'min', 'max'])
+    return stats
+
+
 def main():
     log_directory = 'C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'
     parsed_data = parse_logs(log_directory)
     print(parsed_data.head(3))
     print(parsed_data.tail(3))
+    analytics_directory = 'C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\analytics'
+    passenger_service_stats = analyze_passenger_service_times(analytics_directory + '\\sorted_by_passenger_logs.csv')
+    event_service_stats = analyze_event_service_times(analytics_directory + '\\sorted_by_event_type_logs.csv')
+
+    print("Passenger Service Times Statistics:")
+    print(passenger_service_stats)
+
+    print("\nEvent Type Service Times Statistics:")
+    print(event_service_stats)
+
 
 if __name__ == "__main__":
     main()
