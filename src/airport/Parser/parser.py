@@ -10,7 +10,6 @@ def parse_logs(log_directory):
             file_path = os.path.join(log_directory, filename)
             daily_log = pd.read_csv(file_path)
             all_logs = pd.concat([all_logs, daily_log], ignore_index=True)
-
     return all_logs
 
 
@@ -22,3 +21,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# todo remove main method and call parser from log_functions.py
