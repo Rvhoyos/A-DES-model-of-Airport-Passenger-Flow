@@ -1,6 +1,7 @@
 import numpy as np
 import simpy
 from src.airport.airport import Airport
+from src.airport.flight import Flight
 from src.airport.logger import Logger
 from src.airport.passenger import Passenger
 from src.airport.checkinCounter import CheckinCounter
@@ -20,8 +21,8 @@ class Simulation:
         self.env = simpy.Environment()
         self.simulation_time = simulation_time
         self.logger = Logger()
-        self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters, self.logger)  # Pass the Logger instance to the Airport class
-
+        self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters,
+                               self.logger)  # Pass the Logger instance to the Airport class
 
     def generate_passenger_arrivals(self):
         """
@@ -50,6 +51,14 @@ class Simulation:
             passenger = Passenger(gate_type, seat_type, arrival_time)
             self.env.process(self.airport.process_passenger(passenger))  # Start processing the passenger
 
+    def print_and_log_totals(self):
+        total_revenue = Passenger.ticket_revenue
+        total_cost = Flight.flight_cost
+        print(f"Total revenue: ${total_revenue}")
+        print(f"Total cost: ${total_cost}")
+        self.logger.log_event(self.env.now, 'Total Revenue', self.env.now, f"Total revenue: ${total_revenue}")
+        self.logger.log_event(self.env.now, 'Total Cost', self.env.now, f"Total cost: ${total_cost}")
+
     def run(self):
         """
         Runs the simulation.
@@ -59,6 +68,7 @@ class Simulation:
         self.env.process(self.airport.regional_gate.process_queue())  # Process passengers in queue
         self.env.run(until=self.simulation_time)
         print(f"Simulation ended at time {self.env.now}")
+
 
 # Main function to start the simulation
 def main():
@@ -71,6 +81,8 @@ def main():
     simulation = Simulation(simulation_time, num_business_counters, num_coach_counters)
 
     simulation.run()
+    simulation.print_and_log_totals()
+
 
 if __name__ == "__main__":
     main()

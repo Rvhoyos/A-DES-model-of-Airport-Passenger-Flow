@@ -34,7 +34,8 @@ def visualize_logs_counters(log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005\
             plt.show()
 
 
-# visualize logs for all security screening areas
+# visualize RAW logs found in the data folder
+# todo add Visualizations for anaalytics folder.
 def visualize_logs_screening(log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'):
     for filename in os.listdir(log_dir):
         if filename.endswith('.csv'):

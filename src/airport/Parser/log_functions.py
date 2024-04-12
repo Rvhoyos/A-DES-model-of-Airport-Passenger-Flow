@@ -1,5 +1,5 @@
 import pandas as pd
-from parser import parse_logs
+from analyze_data import parse_logs
 
 
 def consolidate_passenger_logs(logs_df):
@@ -28,7 +28,7 @@ def analyze_event_types(logs_df):
     for event_type, group in logs_df.groupby('Event'):
         # Extract and store relevant details for each event
         event_details = group[['Time', 'Details']].copy()
-        event_details['Event Type'] = event_type  # Add the event type to the DataFrame
+        event_details['Event Type'] = event_type  # Add the event type to the DataFrame #todo error in consol
 
         # Append to the detailed_event_logs DataFrame
         detailed_event_logs = pd.concat([detailed_event_logs, event_details], ignore_index=True)
@@ -39,20 +39,24 @@ def analyze_event_types(logs_df):
     return detailed_event_logs
 
 
+# main method to run after the simulation.
+# Parses logs, and sorts data into data frames for analysis
+# First file exported consolidates passenger logs
+# Second file exported analyzes event types
 def main():
     log_directory = 'C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'
     all_logs = parse_logs(log_directory)  # Get all logs parsed by the original function
     consolidated_logs = consolidate_passenger_logs(all_logs)
 
     # Consolidate passenger logs and save to CSV
-    output_file_path = ('C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\analytics\\consolidated_logs'
+    output_file_path = ('C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\analytics\\sorted_by_passenger_logs'
                         '.csv')
     consolidated_logs.to_csv(output_file_path, index=False)
     print(f"Consolidated logs have been saved to {output_file_path}")
 
     # Analyze event types and save to CSV
     event_analysis = analyze_event_types(all_logs)
-    event_analysis.to_csv('C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\event_logs.csv', index=False)
+    event_analysis.to_csv('C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\analytics\\sorted_by_event_type_logs.csv', index=False)
     print("Event analysis has been saved.")
 
 

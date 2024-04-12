@@ -1,5 +1,6 @@
 class Flight:
     flight_number = 0  # static variable to keep track of the number of flights
+    flight_cost = 0
 
     def __init__(self, flight_type, departure_time):
         self.flight_type = flight_type
@@ -12,6 +13,8 @@ class Flight:
             self.available_seats = {'coach': 140, 'business': 40}
         Flight.flight_number += 1  # Increment the flight number each time a new flight is created
         self.number = Flight.flight_number  # Assign flight number
+        self.operation_cost = 12000 if type == 'provincial' else 1500
+        Flight.flight_cost += self.operation_cost
 
     def board_passenger(self, passenger):
         seat_type = passenger.seat_type
