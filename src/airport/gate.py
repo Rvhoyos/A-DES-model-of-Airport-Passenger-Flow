@@ -45,3 +45,18 @@ class Gate(ABC):
             self.current_flight = next_flight
             return next_flight
         raise Exception("No suitable flight found in the schedule.")
+
+    def check_flight_departure(self):
+        current_time = self.env.now   # Adjust current_time to be within a 24-hour cycle
+        print(f"Checking flight departure at time {current_time}, {self.current_flight.departure_time},")  # Debugging print statement
+        departure_time = self.current_flight.departure_time  # Adjust departure_time to be within a 24-hour cycle
+        #There are times in the simulation where departure_time is 0 or not set..?
+        if(departure_time == 0):
+            #todo how do we deal with this?
+            print(f"Invalid departure time for flight {self.current_flight.flight_number}. Adjusting or skipping...")
+            self.current_flight = self.find_current_flight(current_time)
+            return
+        if departure_time <= current_time:
+            print(f"Flight is departing at time {current_time}")  # Debugging print statement
+            self.current_flight.departure_log(self.logger)  # Log flight departure
+            self.current_flight = self.find_current_flight(current_time)  # Update current_flight to the next flight

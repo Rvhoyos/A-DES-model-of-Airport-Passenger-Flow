@@ -4,9 +4,12 @@ from logger import Logger
 
 
 class ProvincialGate(Gate):
+    number_of_provincial_gates = 0  # Class variable to keep track of the number of Provincial gates
     def __init__(self, env, logger, simulation_time):
         super().__init__(env, logger,simulation_time)
         self.flight_schedule = self.set_schedule(simulation_time)  # Generate schedule for 7 days
+        ProvincialGate.number_of_provincial_gates += 1
+        self.gate_name = f"Regional Gate {ProvincialGate.number_of_provincial_gates}"
 
     def set_schedule(self, simulation_time):
         num_days = int(simulation_time / 86400)  # Convert simulation time to days
@@ -18,6 +21,8 @@ class ProvincialGate(Gate):
     def handle_passenger(self, passenger):
         current_time = self.env.now
         current_flight = self.find_current_flight(current_time)
+        self.check_flight_departure()  # Check if the current flight should depart
+        print(f"Handling provincial passenger at time {self.env.now}")  # Debugging print statement
 
         if current_flight and current_flight.available_seats[passenger.seat_type] > 0:
             current_flight.board_passenger(passenger)
