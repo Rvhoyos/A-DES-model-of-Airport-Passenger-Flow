@@ -9,8 +9,6 @@ from .businessCheckIn import BusinessClassCounter
 from .coachCheckIn import CoachCounter
 
 
-# Assuming you have Gate classes defined as RegionalGate and ProvincialGate
-
 class Airport:
     """
         Represents an airport in a simulation, managing its various counters,
