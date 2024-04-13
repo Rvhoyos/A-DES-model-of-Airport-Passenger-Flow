@@ -1,6 +1,8 @@
 import numpy as np
 import simpy
 from src.airport.airport import Airport
+from src.airport.businessCheckIn import BusinessClassCounter
+from src.airport.coachCheckIn import CoachCounter
 from src.airport.flight import Flight
 from src.airport.logger import Logger
 from src.airport.passenger import Passenger
@@ -53,8 +55,16 @@ class Simulation:
 
     def print_and_log_totals(self):
         total_revenue = Passenger.ticket_revenue
-        total_cost = Flight.flight_cost
+        total_flight_cost = Flight.flight_cost
+        total_checkin_cost = (self.simulation_time / 3600) * (CoachCounter.number_of_agents) * (
+            BusinessClassCounter.number_of_agents)
+        total_cost = total_flight_cost + total_checkin_cost
+        print(f"Toal Number of Passengers: {Passenger.passenger_count}")
+        print(f"Total number of flights: {Flight.flight_number}")
+        print(f"Total Agents: {CoachCounter.number_of_agents + BusinessClassCounter.number_of_agents}")
         print(f"Total revenue: ${total_revenue}")
+        print(f"Flights cost: ${total_flight_cost}")
+        print(f"Counters cost: ${total_checkin_cost}")
         print(f"Total cost: ${total_cost}")
         self.logger.log_event(self.env.now, 'Total Revenue', self.env.now, f"Total revenue: ${total_revenue}")
         self.logger.log_event(self.env.now, 'Total Cost', self.env.now, f"Total cost: ${total_cost}")
@@ -70,6 +80,12 @@ class Simulation:
         print(f"Simulation ended at time {self.env.now}")
 
 
+def replicate(runs, simulation):
+    for i in range(runs):
+        simulation.run()
+        simulation.print_and_log_totals()
+
+
 # Main function to start the simulation
 def main():
     simulation_days = int(input("Enter the number of days to run the simulation: "))
@@ -79,9 +95,8 @@ def main():
     simulation_time = 86400 * simulation_days + 3600  # extra hour to ensure full day inclusion
 
     simulation = Simulation(simulation_time, num_business_counters, num_coach_counters)
-
-    simulation.run()
-    simulation.print_and_log_totals()
+    default_runs = 1  # todo add working replication runs for fun
+    replicate(default_runs, simulation)
 
 
 if __name__ == "__main__":

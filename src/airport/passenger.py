@@ -2,7 +2,8 @@ import numpy as np
 
 
 class Passenger:
-    ticket_revenue = 0;
+    ticket_revenue = 0
+    passenger_count = 0
 
     def __init__(self, gate_type, seat_type, arrival_time):
         self.gate_type = gate_type
@@ -11,7 +12,7 @@ class Passenger:
         self.num_bags = self.generate_num_bags()
         self.cost = self.calculate_cost()  # Calculate the cost of the ticket for this passenger
         Passenger.ticket_revenue += self.cost
-
+        Passenger.passenger_count += 1
     def __str__(self):
         return f"Passenger({self.arrival_time}, {self.num_bags}, {self.gate_type}, {self.seat_type})"
 

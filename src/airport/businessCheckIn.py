@@ -3,12 +3,15 @@ from .logger import Logger
 
 
 class BusinessClassCounter(CheckinCounter):
+    number_of_agents = 0  # Static variable to keep track of the number of business class counters
     """
         Represents a business class check-in counter at an airport.
         """
     def __init__(self, env, logger):
         super().__init__(env, logger)  # Pass the environment to the superclass
         self.counter_type = "Business Class"
+        BusinessClassCounter.number_of_agents += 1
+
 
     def handle_check_in(self, passenger):
         """
