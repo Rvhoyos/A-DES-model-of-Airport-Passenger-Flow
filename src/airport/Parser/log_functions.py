@@ -63,8 +63,5 @@ def main():
     event_analysis.to_csv(event_analysis_output_path, index=False)
     print("Event analysis has been saved.")
 
-
-# todo convert all filepaths to relative paths
-
 if __name__ == "__main__":
     main()
