@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 from analyze_data import parse_logs
 
@@ -44,19 +46,21 @@ def analyze_event_types(logs_df):
 # First file exported consolidates passenger logs
 # Second file exported analyzes event types
 def main():
-    log_directory = 'C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'
+    log_directory = os.path.join(os.path.dirname(__file__), '..', 'data')
     all_logs = parse_logs(log_directory)  # Get all logs parsed by the original function
     consolidated_logs = consolidate_passenger_logs(all_logs)
 
     # Consolidate passenger logs and save to CSV
-    output_file_path = ('C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\analytics\\sorted_by_passenger_logs'
-                        '.csv')
+    output_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'analytics', 'sorted_by_passenger_logs.csv')
+
     consolidated_logs.to_csv(output_file_path, index=False)
     print(f"Consolidated logs have been saved to {output_file_path}")
 
     # Analyze event types and save to CSV
     event_analysis = analyze_event_types(all_logs)
-    event_analysis.to_csv('C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\analytics\\sorted_by_event_type_logs.csv', index=False)
+    event_analysis_output_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'analytics',
+                                              'sorted_by_event_type_logs.csv')
+    event_analysis.to_csv(event_analysis_output_path, index=False)
     print("Event analysis has been saved.")
 
 
