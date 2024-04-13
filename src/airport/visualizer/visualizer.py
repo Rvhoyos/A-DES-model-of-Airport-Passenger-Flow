@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-def visualize_logs(
-        log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'):  # Replace with the absolute path to your 'data' directory
+def visualize_logs(log_dir=os.path.join(os.path.dirname(__file__), '..', 'data')):
     for filename in os.listdir(log_dir):
         if filename.endswith('.csv'):
             filepath = os.path.join(log_dir, filename)
@@ -20,7 +19,7 @@ def visualize_logs(
 
 
 # visualize logs for all check in counters
-def visualize_logs_counters(log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'):
+def visualize_logs_counters(log_dir=os.path.join(os.path.dirname(__file__), '..', 'data')):
     for filename in os.listdir(log_dir):
         if filename.endswith('.csv'):
             filepath = os.path.join(log_dir, filename)
@@ -36,7 +35,7 @@ def visualize_logs_counters(log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005\
 
 # visualize RAW logs found in the data folder
 # todo add Visualizations for anaalytics folder.
-def visualize_logs_screening(log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'):
+def visualize_logs_screening(log_dir=os.path.join(os.path.dirname(__file__), '..', 'data')):
     for filename in os.listdir(log_dir):
         if filename.endswith('.csv'):
             filepath = os.path.join(log_dir, filename)
@@ -51,7 +50,7 @@ def visualize_logs_screening(log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005
 
 
 # Visualize logs for all gates
-def visualize_logs_gates(log_dir='C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'):
+def visualize_logs_gates(log_dir=os.path.join(os.path.dirname(__file__), '..', 'data')):
     for filename in os.listdir(log_dir):
         if filename.endswith('.csv'):
             filepath = os.path.join(log_dir, filename)

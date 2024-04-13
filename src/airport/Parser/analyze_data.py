@@ -22,6 +22,7 @@ def analyze_passenger_service_times(filepath):
     service_times = df['Times'].apply(lambda times: max(times) - min(times))
     return service_times.describe()
 
+
 def analyze_event_service_times(filepath):
     df = pd.read_csv(filepath)
     # Convert 'Time' to float for numerical operations
@@ -32,21 +33,23 @@ def analyze_event_service_times(filepath):
 
 
 def main():
-    log_directory = 'C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data'
+    log_directory = os.path.join(os.path.dirname(__file__), '..', 'data')
     parsed_data = parse_logs(log_directory)
     print(parsed_data.head(3))
     print(parsed_data.tail(3))
-    analytics_directory = 'C:\\Users\\Thank\\PycharmProjects\\DES4005\\src\\airport\\data\\analytics'
-    passenger_service_stats = analyze_passenger_service_times(analytics_directory + '\\sorted_by_passenger_logs.csv')
-    event_service_stats = analyze_event_service_times(analytics_directory + '\\sorted_by_event_type_logs.csv')
+    analytics_directory = os.path.join(os.path.dirname(__file__), '..', 'data', 'analytics')
+    passenger_service_stats = analyze_passenger_service_times(
+        os.path.join(analytics_directory, 'sorted_by_passenger_logs.csv'))
+    event_service_stats = analyze_event_service_times(
+        os.path.join(analytics_directory, 'sorted_by_event_type_logs.csv'))
 
     print("Passenger Service Times Statistics:")
     print(passenger_service_stats)
-    passenger_service_stats.to_csv(analytics_directory + '\\passenger_service_times_stats.csv')
+    passenger_service_stats.to_csv(os.path.join(analytics_directory, 'passenger_service_times_stats.csv'))
 
     print("\nEvent Type Service Times Statistics:")
     print(event_service_stats)
-    passenger_service_stats.to_csv(analytics_directory + '\\event_service_times_stats.csv')
+    passenger_service_stats.to_csv(os.path.join(analytics_directory, 'event_service_times_stats.csv'))
 
 
 if __name__ == "__main__":
