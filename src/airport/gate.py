@@ -8,7 +8,7 @@ class Gate(ABC):
     behaviors for regional and provincial gates.
     """
 
-    def __init__(self, env,logger, simulation_time):
+    def __init__(self, env, logger, simulation_time):
         """
         Initializes the gate with a simulation environment and a flight schedule.
         """
@@ -60,12 +60,11 @@ class Gate(ABC):
         :return:
         #todo return type and also fix empty return?
         """
-        current_time = self.env.now   # Adjust current_time to be within a 24-hour cycle
-        print(f"Checking flight departure at time {current_time}, {self.current_flight.departure_time},")  # Debugging print statement
-        departure_time = self.current_flight.departure_time  # Adjust departure_time to be within a 24-hour cycle
-        #There are times in the simulation where departure_time is 0 or not set..?
-        if(departure_time == 0):
-            #todo how do we deal with this?
+        current_time = self.env.now  # Adjust current_time to be within a 24-hour cycle
+        print(f"Checking flight departure at time {current_time}, {self.current_flight.departure_time},")
+        departure_time = self.current_flight.departure_time
+
+        if departure_time == 0:
             print(f"Invalid departure time for flight {self.current_flight.flight_number}. Adjusting or skipping...")
             self.current_flight = self.find_current_flight(current_time)
             return
