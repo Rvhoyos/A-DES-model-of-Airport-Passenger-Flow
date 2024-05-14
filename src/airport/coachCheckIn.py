@@ -3,15 +3,22 @@ from src.airport.logger import Logger
 
 
 class CoachCounter(CheckinCounter):
-    number_of_agents = 0
     """
-        Represents a coach check-in counter at an airport.
+        Represents a business class check-in counter at an airport.
+
+        Attributes:
+            number_of_agents
         """
+    number_of_agents = 0
     def __init__(self, env, logger):
+        """
+        Initializes a Coach class check-in counter object with a simulation environment and a logger.
+        :param env:
+        :param logger:
+        """
         super().__init__(env, logger)  # Pass the environment to the superclass
         self.counter_type = "Coach"
         CoachCounter.number_of_agents += 1
-
 
     # todo if allocation policy allows for business passengers to use coach counter, then this method should be updated
     def handle_check_in(self, passenger):

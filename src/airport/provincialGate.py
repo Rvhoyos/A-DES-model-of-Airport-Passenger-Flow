@@ -4,14 +4,35 @@ from logger import Logger
 
 
 class ProvincialGate(Gate):
+    """
+    Represents a gate for provincial flights at an airport.
+    Attributes:
+        flight_schedule (list): List of Flight objects representing the schedule of flights for the gate.
+        gate_name (str): The name of the gate.
+        number_of_provincial_gates (int): Class variable to keep track of the number of Provincial gates.
+        logger (Logger): Logger instance for event logging.
+        env (simpy.Environment): The simulation environment.
+    """
     number_of_provincial_gates = 0  # Class variable to keep track of the number of Provincial gates
+
     def __init__(self, env, logger, simulation_time):
-        super().__init__(env, logger,simulation_time)
+        """
+        Initializes a provincial gate at an airport.
+        :param env:
+        :param logger:
+        :param simulation_time:
+        """
+        super().__init__(env, logger, simulation_time)
         self.flight_schedule = self.set_schedule(simulation_time)  # Generate schedule for 7 days
         ProvincialGate.number_of_provincial_gates += 1
         self.gate_name = f"Regional Gate {ProvincialGate.number_of_provincial_gates}"
 
     def set_schedule(self, simulation_time):
+        """
+        Generates a flight schedule for the provincial gate.
+        :param simulation_time:
+        :return:
+        """
         num_days = int(simulation_time / 86400)  # Convert simulation time to days
         self.flight_schedule = [Flight('provincial', day * 24 * 60 * 60 + departure_time)
                                 for day in range(num_days)
@@ -19,6 +40,12 @@ class ProvincialGate(Gate):
         return self.flight_schedule
 
     def handle_passenger(self, passenger):
+        """
+        Handles a provincial passenger at the gate.
+        todo: Is a simpy process?
+        :param passenger:
+        :return:
+        """
         current_time = self.env.now
         current_flight = self.find_current_flight(current_time)
         self.check_flight_departure()  # Check if the current flight should depart
