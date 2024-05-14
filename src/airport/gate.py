@@ -13,7 +13,8 @@ class Gate(ABC):
         Initializes the gate with a simulation environment and a flight schedule.
         """
         self.env = env
-        self.current_flight = None # todo set flight time just like the schedule is set
+        self.current_flight = None  # todo set flight time just like the schedule is set?? prof feedback: simulation...
+        # results are correct...?
         self.schedule = self.set_schedule(simulation_time)  # Initialize the flight schedule
         self.logger = logger  # Initialize a logger for the gate
 
@@ -28,13 +29,20 @@ class Gate(ABC):
     @abstractmethod
     def handle_passenger(self, passenger):
         """
-        Handles the process of a passenger going through the gate. This includes
+        Abstract method to handle a passenger at the gate. This includes
         checking if the passenger can board the current flight or needs to wait,
         and managing late arrivals and refunds where applicable.
         """
         pass
 
     def find_current_flight(self, current_time):
+        """
+        Finds the next flight in the schedule based on the current time.
+        :param current_time:
+        :return:
+
+        #todo return type from flight schedule
+        """
         for flight in self.flight_schedule:
             if flight.departure_time >= current_time:
                 self.current_flight = flight
@@ -47,6 +55,11 @@ class Gate(ABC):
         raise Exception("No suitable flight found in the schedule.")
 
     def check_flight_departure(self):
+        """
+        Checks if the current flight is departing and logs the departure if so.
+        :return:
+        #todo return type and also fix empty return?
+        """
         current_time = self.env.now   # Adjust current_time to be within a 24-hour cycle
         print(f"Checking flight departure at time {current_time}, {self.current_flight.departure_time},")  # Debugging print statement
         departure_time = self.current_flight.departure_time  # Adjust departure_time to be within a 24-hour cycle

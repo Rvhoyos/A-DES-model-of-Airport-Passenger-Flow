@@ -11,15 +11,19 @@ from src.airport.securityScreening import SecurityScreening
 from src.airport.gate import Gate
 
 
-# Simulation setup
 class Simulation:
+    """
+    Represents a simulation of an airport handling passengers through a series of workstations.
+    The workstations serve the passengers based on the queuing model of each workstation.
+    Service times are generated using Simpy's "Yield" to clock delays in the simulation environment.
+    Numpy's random number distributions are used to generate random service times for each workstation.
+    Wait times depend on queuing models, average service time of passengers and line capacity of each workstation.
+    """
     def __init__(self, simulation_time, num_business_counters, num_coach_counters):
         """
-            Initializes the simulation.
-
-            :param simulation_time: Total time to run the simulation in seconds.
-            :param airport: The airport object which will be used in the simulation.
-            """
+        Initializes the simulation with a specified simulation time and number of counters.
+        :param simulation_time, num_business_counters, num_coach_counters:
+        """
         self.env = simpy.Environment()
         self.simulation_time = simulation_time
         self.logger = Logger()
@@ -29,6 +33,7 @@ class Simulation:
     def generate_passenger_arrivals(self):
         """
         Generates passenger arrivals at the airport based on specified rates and distributions.
+        #todo parametrize the rates and distributions.
         """
         print("Starting passenger arrival generation")
         commuter_arrival_rate = 40 / 3600  # passengers per second
@@ -54,6 +59,11 @@ class Simulation:
             self.env.process(self.airport.process_passenger(passenger))  # Start processing the passenger
 
     def print_and_log_totals(self):
+        """
+        At simulation end time.
+        Prints and logs the important metrics of the simulation.
+        :return:
+        """
         total_revenue = Passenger.ticket_revenue
         total_flight_cost = Flight.flight_cost
         total_checkin_cost = (self.simulation_time / 3600) * (CoachCounter.number_of_agents) * (
@@ -81,6 +91,12 @@ class Simulation:
 
 
 def replicate(runs, simulation):
+    """
+    Replicates the simulation for a specified number of runs.
+    :param runs:
+    :param simulation:
+    todo add working replication runs
+    """
     for i in range(runs):
         simulation.run()
         simulation.print_and_log_totals()
@@ -95,7 +111,7 @@ def main():
     simulation_time = 86400 * simulation_days + 3600  # extra hour to ensure full day inclusion
 
     simulation = Simulation(simulation_time, num_business_counters, num_coach_counters)
-    default_runs = 1  # todo add working replication runs for fun
+    default_runs = 1 #change when replication is working
     replicate(default_runs, simulation)
 
 
