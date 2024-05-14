@@ -19,7 +19,7 @@ class Simulation:
     Numpy's random number distributions are used to generate random service times for each workstation.
     Wait times depend on queuing models, average service time of passengers and line capacity of each workstation.
     """
-    def __init__(self, simulation_time, num_business_counters, num_coach_counters):
+    def __init__(self, simulation_time, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates):
         """
         Initializes the simulation with a specified simulation time and number of counters.
         :param simulation_time, num_business_counters, num_coach_counters:
@@ -27,8 +27,7 @@ class Simulation:
         self.env = simpy.Environment()
         self.simulation_time = simulation_time
         self.logger = Logger()
-        self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters,
-                               self.logger)  # Pass the Logger instance to the Airport class
+        self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters, self.logger, num_security_screens, num_regional_gates, num_provincial_gates)  # Pass the Logger instance to the Airport class
 
     def generate_passenger_arrivals(self):
         """
@@ -85,7 +84,8 @@ class Simulation:
         """
         print(f"Simulation starting at time {self.env.now}")
         self.env.process(self.generate_passenger_arrivals())
-        self.env.process(self.airport.regional_gate.process_queue())  # Process passengers in queue
+        for gate in self.airport.regional_gate:
+            self.env.process(gate.process_queue())  # Process passengers in queue
         self.env.run(until=self.simulation_time)
         print(f"Simulation ended at time {self.env.now}")
 
@@ -107,10 +107,13 @@ def main():
     simulation_days = int(input("Enter the number of days to run the simulation: "))
     num_business_counters = int(input("Enter the number of business class counters: "))
     num_coach_counters = int(input("Enter the number of coach counters: "))
+    num_security_screens = int(input("Enter the number of security screening stations: "))
+    num_regional_gates = int(input("Enter the number of regional gates: "))
+    num_provincial_gates = int(input("Enter the number of provincial gates: "))
 
     simulation_time = 86400 * simulation_days + 3600  # extra hour to ensure full day inclusion
 
-    simulation = Simulation(simulation_time, num_business_counters, num_coach_counters)
+    simulation = Simulation(simulation_time, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates)
     default_runs = 1 #change when replication is working
     replicate(default_runs, simulation)
 
