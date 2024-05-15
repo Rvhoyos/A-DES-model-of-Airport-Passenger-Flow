@@ -1,5 +1,7 @@
 import numpy as np
 import simpy
+
+from src.airport.RVG.randomNumberGenerator import Poisson
 from src.airport.airport import Airport
 from src.airport.businessCheckIn import BusinessClassCounter
 from src.airport.coachCheckIn import CoachCounter
@@ -19,7 +21,7 @@ class Simulation:
     Numpy's random number distributions are used to generate random service times for each workstation.
     Wait times depend on queuing models, average service time of passengers and line capacity of each workstation.
     """
-    def __init__(self, simulation_time, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates):
+    def __init__(self, simulation_time, num_business_counters, num_coach_counters, interarrival_rate, num_security_screens, num_regional_gates, num_provincial_gates):
         """
         Initializes the simulation with a specified simulation time and number of counters.
         :param simulation_time, num_business_counters, num_coach_counters:
@@ -28,11 +30,11 @@ class Simulation:
         self.simulation_time = simulation_time
         self.logger = Logger()
         self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters, self.logger, num_security_screens, num_regional_gates, num_provincial_gates)  # Pass the Logger instance to the Airport class
+        self.interarrival_generator = Poisson(interarrival_rate)
 
     def generate_passenger_arrivals(self):
         """
         Generates passenger arrivals at the airport based on specified rates and distributions.
-        #todo parametrize the rates and distributions.
         """
         print("Starting passenger arrival generation")
         commuter_arrival_rate = 40 / 3600  # passengers per second
@@ -40,13 +42,14 @@ class Simulation:
         provincial_arrival_variance = 50 * 60 * 60  # variance in arrival time
 
         while True:
-            is_commuter = np.random.rand() < 0.5
+            is_commuter = np.random.rand() < 0.5  # todo replace with class attribute
             if is_commuter:
-                next_arrival_time = np.random.exponential(1 / commuter_arrival_rate)
+                next_arrival_time = self.interarrival_generator.generate()  # todo replace with class attribute
                 seat_type = 'coach'  # Assuming commuter flights only have coach seats
             else:
-                next_arrival_time = np.random.normal(provincial_mean_arrival_time, np.sqrt(provincial_arrival_variance))
-                seat_type = 'business' if np.random.rand() < 0.5 else 'coach'
+                next_arrival_time = np.random.normal(provincial_mean_arrival_time, np.sqrt(
+                    provincial_arrival_variance))  # todo replace with generator "strategy"
+                seat_type = 'business' if np.random.rand() < 0.5 else 'coach'  # todo replace with class attribute
 
             next_arrival_time = max(next_arrival_time, 0)  # Ensure non-negative time
             yield self.env.timeout(next_arrival_time)
@@ -110,10 +113,11 @@ def main():
     num_security_screens = int(input("Enter the number of security screening stations: "))
     num_regional_gates = int(input("Enter the number of regional gates: "))
     num_provincial_gates = int(input("Enter the number of provincial gates: "))
+    interarrival_rate = float(input("Enter the passenger arrival rate to the airport in minutes: ")) # todo double check proper unit conversion to simulation time (s).
 
     simulation_time = 86400 * simulation_days + 3600  # extra hour to ensure full day inclusion
 
-    simulation = Simulation(simulation_time, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates)
+    simulation = Simulation(simulation_time, num_business_counters, num_coach_counters, interarrival_rate, num_security_screens, num_regional_gates, num_provincial_gates)
     default_runs = 1 #change when replication is working
     replicate(default_runs, simulation)
 

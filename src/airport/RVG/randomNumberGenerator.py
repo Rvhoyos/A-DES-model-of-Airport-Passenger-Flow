@@ -32,3 +32,11 @@ class GeometricRandomNumberGenerator(RandomNumberGenerator):
 
     def generate(self):
         return np.random.geometric(p=self.p) - 1  # Subtracting 1 because geometric distribution starts at 1
+
+
+class Poisson(RandomNumberGenerator):
+    def __init__(self, lam):
+        self.lam = lam
+
+    def generate(self):
+        return np.random.poisson(self.lam) - 1  # Subtracting 1 because geometric distribution starts at 1
