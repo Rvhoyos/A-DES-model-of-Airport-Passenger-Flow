@@ -11,24 +11,28 @@ from src.airport.securityScreening import SecurityScreening
 from src.airport.gate import Gate
 
 
-# Simulation setup
 class Simulation:
-    def __init__(self, simulation_time, num_business_counters, num_coach_counters):
+    """
+    Represents a simulation of an airport handling passengers through a series of workstations.
+    The workstations serve the passengers based on the queuing model of each workstation.
+    Service times are generated using Simpy's "Yield" to clock delays in the simulation environment.
+    Numpy's random number distributions are used to generate random service times for each workstation.
+    Wait times depend on queuing models, average service time of passengers and line capacity of each workstation.
+    """
+    def __init__(self, simulation_time, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates):
         """
-            Initializes the simulation.
-
-            :param simulation_time: Total time to run the simulation in seconds.
-            :param airport: The airport object which will be used in the simulation.
-            """
+        Initializes the simulation with a specified simulation time and number of counters.
+        :param simulation_time, num_business_counters, num_coach_counters:
+        """
         self.env = simpy.Environment()
         self.simulation_time = simulation_time
         self.logger = Logger()
-        self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters,
-                               self.logger)  # Pass the Logger instance to the Airport class
+        self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters, self.logger, num_security_screens, num_regional_gates, num_provincial_gates)  # Pass the Logger instance to the Airport class
 
     def generate_passenger_arrivals(self):
         """
         Generates passenger arrivals at the airport based on specified rates and distributions.
+        #todo parametrize the rates and distributions.
         """
         print("Starting passenger arrival generation")
         commuter_arrival_rate = 40 / 3600  # passengers per second
@@ -54,6 +58,11 @@ class Simulation:
             self.env.process(self.airport.process_passenger(passenger))  # Start processing the passenger
 
     def print_and_log_totals(self):
+        """
+        At simulation end time.
+        Prints and logs the important metrics of the simulation.
+        :return:
+        """
         total_revenue = Passenger.ticket_revenue
         total_flight_cost = Flight.flight_cost
         total_checkin_cost = (self.simulation_time / 3600) * (CoachCounter.number_of_agents) * (
@@ -75,12 +84,19 @@ class Simulation:
         """
         print(f"Simulation starting at time {self.env.now}")
         self.env.process(self.generate_passenger_arrivals())
-        self.env.process(self.airport.regional_gate.process_queue())  # Process passengers in queue
+        for gate in self.airport.regional_gate:
+            self.env.process(gate.process_queue())  # Process passengers in queue
         self.env.run(until=self.simulation_time)
         print(f"Simulation ended at time {self.env.now}")
 
 
 def replicate(runs, simulation):
+    """
+    Replicates the simulation for a specified number of runs.
+    :param runs:
+    :param simulation:
+    todo add working replication runs
+    """
     for i in range(runs):
         simulation.run()
         simulation.print_and_log_totals()
@@ -91,11 +107,14 @@ def main():
     simulation_days = int(input("Enter the number of days to run the simulation: "))
     num_business_counters = int(input("Enter the number of business class counters: "))
     num_coach_counters = int(input("Enter the number of coach counters: "))
+    num_security_screens = int(input("Enter the number of security screening stations: "))
+    num_regional_gates = int(input("Enter the number of regional gates: "))
+    num_provincial_gates = int(input("Enter the number of provincial gates: "))
 
     simulation_time = 86400 * simulation_days + 3600  # extra hour to ensure full day inclusion
 
-    simulation = Simulation(simulation_time, num_business_counters, num_coach_counters)
-    default_runs = 1  # todo add working replication runs for fun
+    simulation = Simulation(simulation_time, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates)
+    default_runs = 1 #change when replication is working
     replicate(default_runs, simulation)
 
 

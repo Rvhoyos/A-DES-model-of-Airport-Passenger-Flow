@@ -8,7 +8,6 @@ from .regionalGate import RegionalGate
 from .businessCheckIn import BusinessClassCounter
 from .coachCheckIn import CoachCounter
 
-
 class Airport:
     """
         Represents an airport in a simulation, managing its various counters,
@@ -24,7 +23,7 @@ class Airport:
             provincial_gate (ProvincialGate): The gate for provincial flights.
         """
 
-    def __init__(self, env, simulation_time, num_business_counters, num_coach_counters, logger):
+    def __init__(self, env, simulation_time, num_business_counters, num_coach_counters, logger, num_security_screens, num_regional_gates, num_provincial_gates):
         """
                 Initializes the airport simulation.
 
@@ -33,6 +32,7 @@ class Airport:
                     simulation_time (int): Total simulation time in seconds.
                     num_business_counters (int): Number of business class counters.
                     num_coach_counters (int): Number of coach counters.
+                    num_security_screens (int): Number of security screening stations.
                 """
         self.env = env
         self.logger = logger
@@ -42,10 +42,10 @@ class Airport:
                                         range(num_business_counters)]  # 1 counter for business class
         self.coach_counters = [CoachCounter(env, logger) for _ in range(num_coach_counters)]  # 3 counters for coach
 
-        self.security_screening = SecurityScreening(env, logger)
+        self.security_screening = [SecurityScreening(env, logger) for _ in range(num_security_screens)]
 
-        self.regional_gate = RegionalGate(env, logger, simulation_time)  # Pass simulation_time to RegionalGate
-        self.provincial_gate = ProvincialGate(env, logger, simulation_time)  # Pass simulation_time to ProvincialGate
+        self.regional_gate = [RegionalGate(env, logger, simulation_time) for _ in range(num_regional_gates)]  # Pass simulation_time to RegionalGate
+        self.provincial_gate = [ProvincialGate(env, logger, simulation_time) for _ in range (num_provincial_gates)]  # Pass simulation_time to ProvincialGate
         self.start_log_saving_process(86400)  # 86400 seconds in a day / log interval
 
     # todo call object.logger.save in this method?
@@ -60,22 +60,30 @@ class Airport:
                               f"Starting process for passenger")
         # Determine which counter to use based on passenger type
         if passenger.seat_type == 'business':
-            counter = self.business_class_counters[
-                0]  # Assuming a single business class counter todo implement allocation policy for dynamic counter amount.
+            counter = self.business_class_counters[0]
         else:
             counter = self.coach_counters[0]
-        # Proceed with subprocess for passenger check-in
-        yield self.env.process(counter.handle_check_in(passenger))
-        print(f"Passenger {passenger.arrival_time} has checked in")
-        # todo above print statement is not executed, verify handle checking
+        # Choose the security screening with the shortest queue
+        min_queue_length = float('inf')
+        chosen_screening = None
+        for screening in self.security_screening:
+            if passenger.seat_type == 'business':
+                queue_length = len(screening.business_machine.get_queue)
+            else:
+                queue_length = len(screening.coach_machines.get_queue)
+            if queue_length < min_queue_length:
+                min_queue_length = queue_length
+                chosen_screening = screening
         # Proceed to security screening
-        yield self.env.process(self.security_screening.screen_passenger(passenger))
-
+        yield self.env.process(chosen_screening.screen_passenger(passenger))
+        print(f"Passenger {passenger.arrival_time} has checked in")
         # Finally, handle the passenger at the appropriate gate
         if passenger.gate_type == 'commuter':
-            yield self.env.process(self.regional_gate.handle_passenger(passenger))
+            for gate in self.regional_gate:
+                yield self.env.process(gate.handle_passenger(passenger))
         else:
-            yield self.env.process(self.provincial_gate.handle_passenger(passenger))
+            for gate in self.provincial_gate:
+                yield self.env.process(gate.handle_passenger(passenger))
 
     def save_logs(self, day):
         """
