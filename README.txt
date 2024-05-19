@@ -14,7 +14,7 @@
    - Open your terminal or command line in the virtual environment.
    - Ensure the following packages are installed:
      ```
-     pip install pandas numpy simpy
+     pip install pandas numpy simpy matplotlib
      ```
 
 ### Execution
