@@ -1,8 +1,6 @@
-╔═════════════════════════════════════════════════════════╗
-║         SMITHS FALLS (Dynamic) Airport Simulator        ║
-║                      Raul Hoyos-Jimenez                 ║
-║             SYSC 4005 - DES & Modeling Project          ║
-╚═════════════════════════════════════════════════════════╝
+
+# SMITHS FALLS Airport Simulator                  
+# SYSC DES & Modeling Project                     
 
 ### Set Up
 1. **Prepare the Environment:**
@@ -43,3 +41,6 @@
 ### Understanding Simulation Console and Other Outputs
 The final reports provide insights into airport operations, showcasing details such as passenger flow, and service times.
 Review these outputs to assess the efficiency and effectiveness of different simulation scenarios.
+
+>TODO: utilization, average waiting times, more detailed logs..etc + open issues
+
