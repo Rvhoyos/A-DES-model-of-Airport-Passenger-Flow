@@ -8,15 +8,16 @@ class Gate(ABC):
     behaviors for regional and provincial gates.
     """
 
-    def __init__(self, env, logger, simulation_time):
+    def __init__(self, ctx):
         """
-        Initializes the gate with a simulation environment and a flight schedule.
+        Initializes the gate with a simulation context and a flight schedule.
         """
-        self.env = env
+        self.ctx = ctx
+        self.env = ctx.env
+        self.logger = ctx.logger
         self.current_flight = None  # todo set flight time just like the schedule is set?? prof feedback: simulation...
         # results are correct...?
-        self.schedule = self.set_schedule(simulation_time)  # Initialize the flight schedule
-        self.logger = logger  # Initialize a logger for the gate
+        self.schedule = self.set_schedule(ctx.simulation_time)  # Initialize the flight schedule
 
     @abstractmethod
     def set_schedule(self):

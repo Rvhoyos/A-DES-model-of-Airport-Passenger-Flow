@@ -12,19 +12,19 @@ class SecurityScreening:
         coach_machines (simpy.Resource): SimPy resource representing the screening machines for coach passengers.
         logger (Logger): Logger instance for event logging.
     """
-    def __init__(self, env, logger):
+    def __init__(self, ctx):
         """
              Initializes the security screening process.
 
              Args:
-                 env (simpy.Environment): The simulation environment.
-                 logger (Logger): The logger instance for logging events.
+                 ctx (SimulationContext): Shared simulation dependencies.
              """
-        self.env = env
+        self.ctx = ctx
+        self.env = ctx.env
+        self.logger = ctx.logger
         # Separate resources for business and coach passengers
-        self.business_machine = simpy.Resource(env, capacity=1)
-        self.coach_machines = simpy.Resource(env, capacity=2)
-        self.logger = logger
+        self.business_machine = simpy.Resource(ctx.env, capacity=1)
+        self.coach_machines = simpy.Resource(ctx.env, capacity=2)
 
     def screen_passenger(self, passenger):
         """

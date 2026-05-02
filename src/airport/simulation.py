@@ -5,6 +5,7 @@ from src.airport.RVG.randomNumberGenerator import ExponentialRandomNumberGenerat
 from src.airport.airport import Airport
 from src.airport.businessCheckIn import BusinessClassCounter
 from src.airport.coachCheckIn import CoachCounter
+from src.airport.context import SimulationContext
 from src.airport.flight import Flight
 from src.airport.logger import Logger
 from src.airport.passenger import Passenger
@@ -29,7 +30,8 @@ class Simulation:
         self.env = simpy.Environment()
         self.simulation_time = simulation_time
         self.logger = Logger()
-        self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters, self.logger, num_security_screens, num_regional_gates, num_provincial_gates)  # Pass the Logger instance to the Airport class
+        self.ctx = SimulationContext(env=self.env, logger=self.logger, simulation_time=simulation_time)
+        self.airport = Airport(self.ctx, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates)
         self.interarrival_generator = ExponentialRandomNumberGenerator(interarrival_rate / 3600)  # Poisson process: inter-arrival times are exponentially distributed. Convert passengers/hour to passengers/second.
 
     def generate_passenger_arrivals(self):

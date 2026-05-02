@@ -12,17 +12,17 @@ class CheckinCounter(ABC):
           counter (simpy.Resource): SimPy resource representing the check-in counter.
           logger (Logger): Logger instance for event logging.
       """
-    def __init__(self, env, logger):
+    def __init__(self, ctx):
         """
               Initialize a check-in counter.
 
               Args:
-                  env (simpy.Environment): The simulation environment.
-                  logger (Logger): Instance for logging events.
+                  ctx (SimulationContext): Shared simulation dependencies.
               """
-        self.env = env
-        self.counter = simpy.Resource(env, capacity=1)
-        self.logger = logger
+        self.ctx = ctx
+        self.env = ctx.env
+        self.logger = ctx.logger
+        self.counter = simpy.Resource(ctx.env, capacity=1)
 
     @abstractmethod
     def handle_check_in(self, passenger):

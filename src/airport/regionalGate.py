@@ -17,17 +17,15 @@ class RegionalGate(Gate):
     """
     number_of_regional_gates = 0  # Class variable to keep track of the number of Regional gates
 
-    def __init__(self, env, logger, simulation_time):
+    def __init__(self, ctx):
         """
-        Initializes the regional gate with a simulation environment, a flight schedule, and a queue.
+        Initializes the regional gate with a simulation context, a flight schedule, and a queue.
         Args:
-            env (simpy.Environment): The simulation environment.
-            logger (Logger): Logger instance for event logging.
-            simulation_time (int): Total simulation time in seconds.
+            ctx (SimulationContext): Shared simulation dependencies.
         """
-        super().__init__(env, logger, simulation_time)
-        self.flight_schedule = self.set_schedule(simulation_time)
-        self.queue = simpy.Store(env)  # Simpy store to hold passengers in queue
+        super().__init__(ctx)
+        self.flight_schedule = self.set_schedule(ctx.simulation_time)
+        self.queue = simpy.Store(ctx.env)  # Simpy store to hold passengers in queue
         RegionalGate.number_of_regional_gates += 1
         self.gate_name = f"Regional Gate {RegionalGate.number_of_regional_gates}"
 

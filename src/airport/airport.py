@@ -23,29 +23,27 @@ class Airport:
             provincial_gate (ProvincialGate): The gate for provincial flights.
         """
 
-    def __init__(self, env, simulation_time, num_business_counters, num_coach_counters, logger, num_security_screens, num_regional_gates, num_provincial_gates):
+    def __init__(self, ctx, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates):
         """
                 Initializes the airport simulation.
 
                 Args:
-                    env (simpy.Environment): The simulation environment.
-                    simulation_time (int): Total simulation time in seconds.
+                    ctx (SimulationContext): Shared simulation dependencies (env, logger, simulation_time).
                     num_business_counters (int): Number of business class counters.
                     num_coach_counters (int): Number of coach counters.
                     num_security_screens (int): Number of security screening stations.
+                    num_regional_gates (int): Number of regional gates.
+                    num_provincial_gates (int): Number of provincial gates.
                 """
-        self.env = env
-        self.logger = logger
+        self.ctx = ctx
+        self.env = ctx.env
+        self.logger = ctx.logger
 
-        # Pass the logger to each component of the airport
-        self.business_class_counters = [BusinessClassCounter(env, self.logger) for _ in
-                                        range(num_business_counters)]  # 1 counter for business class
-        self.coach_counters = [CoachCounter(env, logger) for _ in range(num_coach_counters)]  # 3 counters for coach
-
-        self.security_screening = [SecurityScreening(env, logger) for _ in range(num_security_screens)]
-
-        self.regional_gate = [RegionalGate(env, logger, simulation_time) for _ in range(num_regional_gates)]  # Pass simulation_time to RegionalGate
-        self.provincial_gate = [ProvincialGate(env, logger, simulation_time) for _ in range (num_provincial_gates)]  # Pass simulation_time to ProvincialGate
+        self.business_class_counters = [BusinessClassCounter(ctx) for _ in range(num_business_counters)]
+        self.coach_counters = [CoachCounter(ctx) for _ in range(num_coach_counters)]
+        self.security_screening = [SecurityScreening(ctx) for _ in range(num_security_screens)]
+        self.regional_gate = [RegionalGate(ctx) for _ in range(num_regional_gates)]
+        self.provincial_gate = [ProvincialGate(ctx) for _ in range(num_provincial_gates)]
         self.start_log_saving_process(86400)  # 86400 seconds in a day / log interval
 
     def process_passenger(self, passenger):

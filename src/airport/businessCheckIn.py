@@ -1,5 +1,4 @@
 from .checkinCounter import CheckinCounter
-from .logger import Logger
 
 
 class BusinessClassCounter(CheckinCounter):
@@ -13,13 +12,12 @@ class BusinessClassCounter(CheckinCounter):
     """
     number_of_agents = 0  # Static variable to keep track of the number of business class counters
 
-    def __init__(self, env, logger):
+    def __init__(self, ctx):
         """
-        Initializes a business class check-in counter object with a simulation environment and a logger.
-        :param env:
-        :param logger:
+        Initializes a business class check-in counter object.
+        :param ctx: SimulationContext with shared dependencies.
         """
-        super().__init__(env, logger)  # Pass the environment to the superclass
+        super().__init__(ctx)
         self.counter_type = "Business Class"
         BusinessClassCounter.number_of_agents += 1
 

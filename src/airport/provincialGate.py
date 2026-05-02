@@ -1,6 +1,5 @@
 from .flight import Flight
 from .gate import Gate
-from .logger import Logger
 
 
 class ProvincialGate(Gate):
@@ -15,15 +14,13 @@ class ProvincialGate(Gate):
     """
     number_of_provincial_gates = 0  # Class variable to keep track of the number of Provincial gates
 
-    def __init__(self, env, logger, simulation_time):
+    def __init__(self, ctx):
         """
         Initializes a provincial gate at an airport.
-        :param env:
-        :param logger:
-        :param simulation_time:
+        :param ctx: SimulationContext with shared dependencies.
         """
-        super().__init__(env, logger, simulation_time)
-        self.flight_schedule = self.set_schedule(simulation_time)  # Generate schedule for 7 days
+        super().__init__(ctx)
+        self.flight_schedule = self.set_schedule(ctx.simulation_time)
         ProvincialGate.number_of_provincial_gates += 1
         self.gate_name = f"Regional Gate {ProvincialGate.number_of_provincial_gates}"
 

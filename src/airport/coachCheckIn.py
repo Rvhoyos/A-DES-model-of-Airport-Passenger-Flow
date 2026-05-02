@@ -1,22 +1,20 @@
 from .checkinCounter import CheckinCounter
-from .logger import Logger
 
 
 class CoachCounter(CheckinCounter):
     """
-        Represents a business class check-in counter at an airport.
+        Represents a coach class check-in counter at an airport.
 
         Attributes:
             number_of_agents
         """
     number_of_agents = 0
-    def __init__(self, env, logger):
+    def __init__(self, ctx):
         """
-        Initializes a Coach class check-in counter object with a simulation environment and a logger.
-        :param env:
-        :param logger:
+        Initializes a Coach class check-in counter object.
+        :param ctx: SimulationContext with shared dependencies.
         """
-        super().__init__(env, logger)  # Pass the environment to the superclass
+        super().__init__(ctx)
         self.counter_type = "Coach"
         CoachCounter.number_of_agents += 1
 
