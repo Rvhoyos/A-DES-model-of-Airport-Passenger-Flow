@@ -36,30 +36,28 @@ class Simulation:
 
     def generate_passenger_arrivals(self):
         """
-        Generates passenger arrivals at the airport based on specified rates and distributions.
+        Generates passenger arrivals at the airport using one Poisson process.
+        All passengers share the same exponential inter-arrival generator (user's input rate).
+        After arrival, each passenger is classified as commuter or provincial.
         """
         print("Starting passenger arrival generation")
-        provincial_mean_arrival_time = 75 * 60  # mean arrival time in seconds
-        provincial_arrival_variance = 50 * 60 * 60  # variance in arrival time
 
         while True:
-            is_commuter = np.random.rand() < 0.5  # todo replace with class attribute
-            if is_commuter:
-                next_arrival_time = self.interarrival_generator.generate()  # todo replace with class attribute
-                seat_type = 'coach'  # Assuming commuter flights only have coach seats
-            else:
-                next_arrival_time = np.random.normal(provincial_mean_arrival_time, np.sqrt(
-                    provincial_arrival_variance))  # todo replace with generator "strategy"
-                seat_type = 'business' if np.random.rand() < 0.5 else 'coach'  # todo replace with class attribute
-
-            next_arrival_time = max(next_arrival_time, 0)  # Ensure non-negative time
+            next_arrival_time = self.interarrival_generator.generate()
             yield self.env.timeout(next_arrival_time)
             arrival_time = self.env.now
-            self.logger.log_event(arrival_time, 'Arrival', arrival_time,
-                                  'Passenger arrived')  # Log right after determining arrival_time
+
+            is_commuter = np.random.rand() < 0.5
             gate_type = 'commuter' if is_commuter else 'provincial'
+
+            if is_commuter:
+                seat_type = 'coach'
+            else:
+                seat_type = 'business' if np.random.rand() < 0.5 else 'coach'
+
+            self.logger.log_event(arrival_time, 'Arrival', arrival_time, 'Passenger arrived')
             passenger = Passenger(gate_type, seat_type, arrival_time)
-            self.env.process(self.airport.process_passenger(passenger))  # Start processing the passenger
+            self.env.process(self.airport.process_passenger(passenger))
 
     def print_and_log_totals(self):
         """
@@ -88,7 +86,7 @@ class Simulation:
         """
         print(f"Simulation starting at time {self.env.now}")
         self.env.process(self.generate_passenger_arrivals())
-        for gate in self.airport.regional_gate:
+        for gate in self.airport.regional_gates:
             self.env.process(gate.process_queue())  # Process passengers in queue
         self.env.run(until=self.simulation_time)
         print(f"Simulation ended at time {self.env.now}")

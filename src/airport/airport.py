@@ -42,8 +42,8 @@ class Airport:
         self.business_class_counters = [BusinessClassCounter(ctx) for _ in range(num_business_counters)]
         self.coach_counters = [CoachCounter(ctx) for _ in range(num_coach_counters)]
         self.security_screening = [SecurityScreening(ctx) for _ in range(num_security_screens)]
-        self.regional_gate = [RegionalGate(ctx) for _ in range(num_regional_gates)]
-        self.provincial_gate = [ProvincialGate(ctx) for _ in range(num_provincial_gates)]
+        self.regional_gates = [RegionalGate(ctx) for _ in range(num_regional_gates)]
+        self.provincial_gates = [ProvincialGate(ctx) for _ in range(num_provincial_gates)]
         self.start_log_saving_process(86400)  # 86400 seconds in a day / log interval
 
     def process_passenger(self, passenger):
@@ -67,9 +67,9 @@ class Airport:
         # To actually run it, SimPy needs: yield self.env.process(counter.handle_check_in(passenger))
         # Without that yield, the counter is selected but never used — passenger skips to security.
         if passenger.seat_type == 'business':
-            counter = self.business_class_counters[0]
+            counter = min(self.business_class_counters, key=lambda c: len(c.counter.queue))
         else:
-            counter = self.coach_counters[0]
+            counter = min(self.coach_counters, key=lambda c: len(c.counter.queue))
 
         # --- STAGE 2: SECURITY SCREENING ---
         # Picks the screening station with the shortest queue.
@@ -95,10 +95,10 @@ class Airport:
         # every gate and potentially boards multiple flights.
         # A passenger should go to ONE gate (e.g., the one with the next available flight).
         if passenger.gate_type == 'commuter':
-            for gate in self.regional_gate:
+            for gate in self.regional_gates:
                 yield self.env.process(gate.handle_passenger(passenger))
         else:
-            for gate in self.provincial_gate:
+            for gate in self.provincial_gates:
                 yield self.env.process(gate.handle_passenger(passenger))
 
     def save_logs(self, day):

@@ -57,7 +57,7 @@ class ProvincialGate(Gate):
             # todo logging boarding might be not needed.
             print(f"No seats available at time {current_time}.")
             self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'No seats available')
-            if passenger.arrival_time_at_airport <= current_flight.departure_time - 90 * 60:
+            if passenger.arrival_time <= current_flight.departure_time - 90 * 60:
                 print(f"A passenger receives a refund at time {current_time} and has left the airport.")
                 self.logger.log_event(passenger.arrival_time, 'Refund', self.env.now,
                                       'Received refund and left airport')
