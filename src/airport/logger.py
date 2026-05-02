@@ -6,11 +6,13 @@ class Logger:
     """
     Class to log events in the airport simulation.
     """
-    def __init__(self, log_dir='data'):
+    def __init__(self, log_dir=None):
         """
         Initializes the logger with a directory to save logs.
         :param log_dir:
         """
+        if log_dir is None:
+            log_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.log_dir = log_dir
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)

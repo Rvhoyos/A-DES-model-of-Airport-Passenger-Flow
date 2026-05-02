@@ -48,36 +48,54 @@ class Airport:
         self.provincial_gate = [ProvincialGate(env, logger, simulation_time) for _ in range (num_provincial_gates)]  # Pass simulation_time to ProvincialGate
         self.start_log_saving_process(86400)  # 86400 seconds in a day / log interval
 
-    # todo call object.logger.save in this method?
     def process_passenger(self, passenger):
         """
-        Processes a passenger through the airport's check-in, security, and gate.
+        SimPy generator process: routes a passenger through check-in → security → gate.
+
+        Each `yield self.env.process(...)` suspends this generator until the sub-process
+        completes. SimPy resumes execution at the next line once the yielded event fires.
+        See: docs/simpy_4.1.1_api_reference.md — "Sequential sub-processes"
+
         Args:
             passenger (Passenger): The passenger to process.
-            """
+        """
         print(f"Processing passenger {passenger.arrival_time}")
         self.logger.log_event(passenger.arrival_time, 'Process Start', self.env.now,
                               f"Starting process for passenger")
-        # Determine which counter to use based on passenger type
+
+        # --- STAGE 1: CHECK-IN ---
+        # counter is a simpy.Resource (capacity=1). Its handle_check_in() is a
+        # generator that does: yield req → yield env.timeout(service_time).
+        # To actually run it, SimPy needs: yield self.env.process(counter.handle_check_in(passenger))
+        # Without that yield, the counter is selected but never used — passenger skips to security.
         if passenger.seat_type == 'business':
             counter = self.business_class_counters[0]
         else:
             counter = self.coach_counters[0]
-        # Choose the security screening with the shortest queue
+
+        # --- STAGE 2: SECURITY SCREENING ---
+        # Picks the screening station with the shortest queue.
+        # Shortest-queue selection: .queue on simpy.Resource holds waiting requests.
+        # See: docs/simpy_4.1.1_api_reference.md — BaseResource hierarchy
         min_queue_length = float('inf')
         chosen_screening = None
         for screening in self.security_screening:
             if passenger.seat_type == 'business':
-                queue_length = len(screening.business_machine.get_queue)
+                queue_length = len(screening.business_machine.queue)
             else:
-                queue_length = len(screening.coach_machines.get_queue)
+                queue_length = len(screening.coach_machines.queue)
             if queue_length < min_queue_length:
                 min_queue_length = queue_length
                 chosen_screening = screening
-        # Proceed to security screening
         yield self.env.process(chosen_screening.screen_passenger(passenger))
         print(f"Passenger {passenger.arrival_time} has checked in")
-        # Finally, handle the passenger at the appropriate gate
+
+        # --- STAGE 3: GATE ---
+        # BUG: the for loop yields a process for EVERY gate of this type.
+        # yield self.env.process() is blocking — it waits for each gate's handle_passenger()
+        # to finish, then moves to the next gate. So one passenger sequentially visits
+        # every gate and potentially boards multiple flights.
+        # A passenger should go to ONE gate (e.g., the one with the next available flight).
         if passenger.gate_type == 'commuter':
             for gate in self.regional_gate:
                 yield self.env.process(gate.handle_passenger(passenger))

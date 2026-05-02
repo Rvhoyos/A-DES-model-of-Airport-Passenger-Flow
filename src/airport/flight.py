@@ -29,7 +29,7 @@ class Flight:
             self.available_seats = {'coach': 140, 'business': 40}
         Flight.flight_number += 1  # Increment the flight number each time a new flight is created
         self.number = Flight.flight_number  # Assign flight number
-        self.operation_cost = 12000 if type == 'provincial' else 1500
+        self.operation_cost = 12000 if flight_type == 'provincial' else 1500
         Flight.flight_cost += self.operation_cost
 
     def board_passenger(self, passenger):

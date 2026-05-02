@@ -51,7 +51,9 @@ def main():
     consolidated_logs = consolidate_passenger_logs(all_logs)
 
     # Consolidate passenger logs and save to CSV
-    output_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'analytics', 'sorted_by_passenger_logs.csv')
+    analytics_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'analytics')
+    os.makedirs(analytics_dir, exist_ok=True)
+    output_file_path = os.path.join(analytics_dir, 'sorted_by_passenger_logs.csv')
 
     consolidated_logs.to_csv(output_file_path, index=False)
     print(f"Consolidated logs have been saved to {output_file_path}")

@@ -1,6 +1,6 @@
-from flight import Flight
-from gate import Gate
-from logger import Logger
+from .flight import Flight
+from .gate import Gate
+from .logger import Logger
 
 
 class ProvincialGate(Gate):

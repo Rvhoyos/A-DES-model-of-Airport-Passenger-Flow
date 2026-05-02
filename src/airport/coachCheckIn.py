@@ -1,5 +1,5 @@
-from checkinCounter import CheckinCounter
-from src.airport.logger import Logger
+from .checkinCounter import CheckinCounter
+from .logger import Logger
 
 
 class CoachCounter(CheckinCounter):

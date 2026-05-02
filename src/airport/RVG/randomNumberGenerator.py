@@ -14,7 +14,7 @@ class ExponentialRandomNumberGenerator(RandomNumberGenerator):
         self.rate = rate
 
     def generate(self):
-        return np.random.exponential(1 / self.rate)  # todo checkinCounter has 1/rate check if correct in broader use.
+        return np.random.exponential(1 / self.rate)  # 1/rate = mean time between events
 
 
 class NormalRandomNumberGenerator(RandomNumberGenerator):
@@ -34,9 +34,4 @@ class GeometricRandomNumberGenerator(RandomNumberGenerator):
         return np.random.geometric(p=self.p) - 1  # Subtracting 1 because geometric distribution starts at 1
 
 
-class Poisson(RandomNumberGenerator):
-    def __init__(self, lam):
-        self.lam = lam
 
-    def generate(self):
-        return np.random.poisson(self.lam) - 1  # Subtracting 1 because geometric distribution starts at 1

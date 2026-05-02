@@ -1,7 +1,7 @@
 import numpy as np
 import simpy
 
-from src.airport.RVG.randomNumberGenerator import Poisson
+from src.airport.RVG.randomNumberGenerator import ExponentialRandomNumberGenerator
 from src.airport.airport import Airport
 from src.airport.businessCheckIn import BusinessClassCounter
 from src.airport.coachCheckIn import CoachCounter
@@ -30,14 +30,13 @@ class Simulation:
         self.simulation_time = simulation_time
         self.logger = Logger()
         self.airport = Airport(self.env, simulation_time, num_business_counters, num_coach_counters, self.logger, num_security_screens, num_regional_gates, num_provincial_gates)  # Pass the Logger instance to the Airport class
-        self.interarrival_generator = Poisson(interarrival_rate)
+        self.interarrival_generator = ExponentialRandomNumberGenerator(interarrival_rate / 3600)  # Poisson process: inter-arrival times are exponentially distributed. Convert passengers/hour to passengers/second.
 
     def generate_passenger_arrivals(self):
         """
         Generates passenger arrivals at the airport based on specified rates and distributions.
         """
         print("Starting passenger arrival generation")
-        commuter_arrival_rate = 40 / 3600  # passengers per second
         provincial_mean_arrival_time = 75 * 60  # mean arrival time in seconds
         provincial_arrival_variance = 50 * 60 * 60  # variance in arrival time
 
@@ -71,7 +70,7 @@ class Simulation:
         total_checkin_cost = (self.simulation_time / 3600) * (CoachCounter.number_of_agents) * (
             BusinessClassCounter.number_of_agents)
         total_cost = total_flight_cost + total_checkin_cost
-        print(f"Toal Number of Passengers: {Passenger.passenger_count}")
+        print(f"Total Number of Passengers: {Passenger.passenger_count}")
         print(f"Total number of flights: {Flight.flight_number}")
         print(f"Total Agents: {CoachCounter.number_of_agents + BusinessClassCounter.number_of_agents}")
         print(f"Total revenue: ${total_revenue}")
@@ -113,7 +112,7 @@ def main():
     num_security_screens = int(input("Enter the number of security screening stations: "))
     num_regional_gates = int(input("Enter the number of regional gates: "))
     num_provincial_gates = int(input("Enter the number of provincial gates: "))
-    interarrival_rate = float(input("Enter the passenger arrival rate to the airport in minutes: ")) # todo double check proper unit conversion to simulation time (s).
+    interarrival_rate = float(input("Enter the passenger arrival rate (passengers per hour): "))
 
     simulation_time = 86400 * simulation_days + 3600  # extra hour to ensure full day inclusion
 
