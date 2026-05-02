@@ -12,7 +12,7 @@ class CoachCounter(CheckinCounter):
     def __init__(self, ctx):
         """
         Initializes a Coach class check-in counter object.
-        :param ctx: SimulationContext with shared dependencies.
+        :param ctx: SimulationContext (env, logger, simulation_time).
         """
         super().__init__(ctx)
         self.counter_type = "Coach"

@@ -17,7 +17,7 @@ class CheckinCounter(ABC):
               Initialize a check-in counter.
 
               Args:
-                  ctx (SimulationContext): Shared simulation dependencies.
+                  ctx (SimulationContext): env, logger, simulation_time.
               """
         self.ctx = ctx
         self.env = ctx.env

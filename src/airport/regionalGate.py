@@ -21,7 +21,7 @@ class RegionalGate(Gate):
         """
         Initializes the regional gate with a simulation context, a flight schedule, and a queue.
         Args:
-            ctx (SimulationContext): Shared simulation dependencies.
+            ctx (SimulationContext): env, logger, simulation_time.
         """
         super().__init__(ctx)
         self.flight_schedule = self.set_schedule(ctx.simulation_time)

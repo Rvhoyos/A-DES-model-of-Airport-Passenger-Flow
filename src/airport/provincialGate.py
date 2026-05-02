@@ -17,7 +17,7 @@ class ProvincialGate(Gate):
     def __init__(self, ctx):
         """
         Initializes a provincial gate at an airport.
-        :param ctx: SimulationContext with shared dependencies.
+        :param ctx: SimulationContext (env, logger, simulation_time).
         """
         super().__init__(ctx)
         self.flight_schedule = self.set_schedule(ctx.simulation_time)

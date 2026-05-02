@@ -17,7 +17,7 @@ class SecurityScreening:
              Initializes the security screening process.
 
              Args:
-                 ctx (SimulationContext): Shared simulation dependencies.
+                 ctx (SimulationContext): env, logger, simulation_time.
              """
         self.ctx = ctx
         self.env = ctx.env

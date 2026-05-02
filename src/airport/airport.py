@@ -28,7 +28,7 @@ class Airport:
                 Initializes the airport simulation.
 
                 Args:
-                    ctx (SimulationContext): Shared simulation dependencies (env, logger, simulation_time).
+                    ctx (SimulationContext): env, logger, simulation_time.
                     num_business_counters (int): Number of business class counters.
                     num_coach_counters (int): Number of coach counters.
                     num_security_screens (int): Number of security screening stations.
@@ -52,7 +52,7 @@ class Airport:
 
         Each `yield self.env.process(...)` suspends this generator until the sub-process
         completes. SimPy resumes execution at the next line once the yielded event fires.
-        See: docs/simpy_4.1.1_api_reference.md — "Sequential sub-processes"
+        See: docs/simpy_4.1.1_api_reference.md -"Sequential sub-processes"
 
         Args:
             passenger (Passenger): The passenger to process.
@@ -65,7 +65,7 @@ class Airport:
         # counter is a simpy.Resource (capacity=1). Its handle_check_in() is a
         # generator that does: yield req → yield env.timeout(service_time).
         # To actually run it, SimPy needs: yield self.env.process(counter.handle_check_in(passenger))
-        # Without that yield, the counter is selected but never used — passenger skips to security.
+        # Without that yield, the counter is selected but never used -passenger skips to security.
         if passenger.seat_type == 'business':
             counter = min(self.business_class_counters, key=lambda c: len(c.counter.queue))
         else:
@@ -74,7 +74,7 @@ class Airport:
         # --- STAGE 2: SECURITY SCREENING ---
         # Picks the screening station with the shortest queue.
         # Shortest-queue selection: .queue on simpy.Resource holds waiting requests.
-        # See: docs/simpy_4.1.1_api_reference.md — BaseResource hierarchy
+        # See: docs/simpy_4.1.1_api_reference.md -BaseResource hierarchy
         min_queue_length = float('inf')
         chosen_screening = None
         for screening in self.security_screening:
@@ -90,7 +90,7 @@ class Airport:
 
         # --- STAGE 3: GATE ---
         # BUG: the for loop yields a process for EVERY gate of this type.
-        # yield self.env.process() is blocking — it waits for each gate's handle_passenger()
+        # yield self.env.process() is blocking -it waits for each gate's handle_passenger()
         # to finish, then moves to the next gate. So one passenger sequentially visits
         # every gate and potentially boards multiple flights.
         # A passenger should go to ONE gate (e.g., the one with the next available flight).
