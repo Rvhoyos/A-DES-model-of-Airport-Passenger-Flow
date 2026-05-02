@@ -59,7 +59,9 @@ class Airport:
         """
         print(f"Processing passenger {passenger.arrival_time}")
         self.logger.log_event(passenger.arrival_time, 'Process Start', self.env.now,
-                              f"Starting process for passenger")
+                              f"Starting process for passenger",
+                              passenger_id=passenger.id, gate_type=passenger.gate_type,
+                              seat_type=passenger.seat_type)
 
         # --- STAGE 1: CHECK-IN ---
         # counter is a simpy.Resource (capacity=1). Its handle_check_in() is a

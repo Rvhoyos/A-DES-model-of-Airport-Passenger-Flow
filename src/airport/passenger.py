@@ -20,8 +20,9 @@ class Passenger:
         self.arrival_time = arrival_time
         self.num_bags = self.generate_num_bags()
         self.cost = self.calculate_cost()  # Calculate the cost of the ticket for this passenger
-        Passenger.ticket_revenue += self.cost
         Passenger.passenger_count += 1
+        self.id = Passenger.passenger_count
+        Passenger.ticket_revenue += self.cost
 
     def generate_num_bags(self):
         """

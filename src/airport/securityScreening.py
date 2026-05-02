@@ -12,6 +12,8 @@ class SecurityScreening:
         coach_machines (simpy.Resource): SimPy resource representing the screening machines for coach passengers.
         logger (Logger): Logger instance for event logging.
     """
+    number_of_stations = 0
+
     def __init__(self, ctx):
         """
              Initializes the security screening process.
@@ -22,6 +24,8 @@ class SecurityScreening:
         self.ctx = ctx
         self.env = ctx.env
         self.logger = ctx.logger
+        SecurityScreening.number_of_stations += 1
+        self.station_name = f"Security Station {SecurityScreening.number_of_stations}"
         # Separate resources for business and coach passengers
         self.business_machine = simpy.Resource(ctx.env, capacity=1)
         self.coach_machines = simpy.Resource(ctx.env, capacity=2)
@@ -37,7 +41,15 @@ class SecurityScreening:
         machine = self.business_machine if passenger.seat_type == 'business' else self.coach_machines
 
         with machine.request() as req:
+            self.logger.log_event(passenger.arrival_time, 'Security Queue', self.env.now,
+                                  'Entered security screening queue',
+                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
+                                  seat_type=passenger.seat_type, station=self.station_name)
             yield req
+            self.logger.log_event(passenger.arrival_time, 'Security Start', self.env.now,
+                                  'Started security screening',
+                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
+                                  seat_type=passenger.seat_type, station=self.station_name)
             screening_time = np.random.exponential(3 * 60)  # Screening time in seconds
             start_time = self.env.now
             yield self.env.timeout(screening_time)
@@ -47,5 +59,7 @@ class SecurityScreening:
                 passenger.arrival_time,
                 'Security Screening',
                 start_time,
-                f'Screening completed in {screening_time} seconds'
+                f'Screening completed in {screening_time} seconds',
+                passenger_id=passenger.id, gate_type=passenger.gate_type,
+                seat_type=passenger.seat_type, station=self.station_name, duration=screening_time
             )

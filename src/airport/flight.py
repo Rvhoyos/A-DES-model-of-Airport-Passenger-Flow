@@ -52,7 +52,8 @@ class Flight:
         """
         print(f"Flight {self.number} is departing at time {self.departure_time}")  # New print statement
         details = f'Flight {self.number} departed with {self.available_seats} seats left out of {self.total_seats}'
-        logger.log_event(self.departure_time, 'Flight Departure', self.departure_time, details)
+        logger.log_event(self.departure_time, 'Flight Departure', self.departure_time, details,
+                         station=f'Flight {self.number} ({self.flight_type})')
 
     def __str__(self):
         """

@@ -22,7 +22,7 @@ class ProvincialGate(Gate):
         super().__init__(ctx)
         self.flight_schedule = self.set_schedule(ctx.simulation_time)
         ProvincialGate.number_of_provincial_gates += 1
-        self.gate_name = f"Regional Gate {ProvincialGate.number_of_provincial_gates}"
+        self.gate_name = f"Provincial Gate {ProvincialGate.number_of_provincial_gates}"
 
     def set_schedule(self, simulation_time):
         """
@@ -44,6 +44,10 @@ class ProvincialGate(Gate):
         :return:
         """
         current_time = self.env.now
+        self.logger.log_event(passenger.arrival_time, 'Gate Arrival', self.env.now,
+                              f'Arrived at {self.gate_name}',
+                              passenger_id=passenger.id, gate_type=passenger.gate_type,
+                              seat_type=passenger.seat_type, station=self.gate_name)
         current_flight = self.find_current_flight(current_time)
         self.check_flight_departure()  # Check if the current flight should depart
         print(f"Handling provincial passenger at time {self.env.now}")  # Debugging print statement
@@ -51,18 +55,26 @@ class ProvincialGate(Gate):
         if current_flight and current_flight.available_seats[passenger.seat_type] > 0:
             current_flight.board_passenger(passenger)
             print(f"A passenger boards the flight {current_flight} at time {current_time}.")
-            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'Boarded flight successfully')
+            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'Boarded flight successfully',
+                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
+                                  seat_type=passenger.seat_type, station=self.gate_name)
 
         else:
             # todo logging boarding might be not needed.
             print(f"No seats available at time {current_time}.")
-            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'No seats available')
+            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'No seats available',
+                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
+                                  seat_type=passenger.seat_type, station=self.gate_name)
             if passenger.arrival_time <= current_flight.departure_time - 90 * 60:
                 print(f"A passenger receives a refund at time {current_time} and has left the airport.")
                 self.logger.log_event(passenger.arrival_time, 'Refund', self.env.now,
-                                      'Received refund and left airport')
+                                      'Received refund and left airport',
+                                      passenger_id=passenger.id, gate_type=passenger.gate_type,
+                                      seat_type=passenger.seat_type, station=self.gate_name)
                 yield self.env.timeout(0)  # Ensuring the method yields an event
             else:
                 print(f"A passenger was late to the airport at{current_flight.departure_time} and left the airport.")
-                self.logger.log_event(passenger.arrival_time, 'Late', self.env.now, 'Late to airport and left')
+                self.logger.log_event(passenger.arrival_time, 'Late', self.env.now, 'Late to airport and left',
+                                      passenger_id=passenger.id, gate_type=passenger.gate_type,
+                                      seat_type=passenger.seat_type, station=self.gate_name)
                 yield self.env.timeout(0)  # Ensuring the method yields an event even if no other action is taken

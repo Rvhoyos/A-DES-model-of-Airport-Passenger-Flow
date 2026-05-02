@@ -16,20 +16,30 @@ class Logger:
         self.log_dir = log_dir
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-        self.daily_log = pd.DataFrame(columns=['Arrival Time', 'Event', 'Time', 'Details'])
+        self.daily_log = pd.DataFrame(columns=['Arrival Time', 'Event', 'Time', 'Details',
+                                                'Passenger ID', 'Gate Type', 'Seat Type', 'Station', 'Duration'])
 
-    def log_event(self, arrival_time, event, time, details):
+    def log_event(self, arrival_time, event, time, details,
+                  passenger_id=None, gate_type=None, seat_type=None, station=None, duration=None):
         """
         Logs an event with arrival time, event type, time, and details.
         :param arrival_time:
         :param event:
         :param time:
         :param details:
+        :param passenger_id:
+        :param gate_type:
+        :param seat_type:
+        :param station:
+        :param duration:
         :return:
         """
         print(f"Logging event: {event}, Time: {time}, Details: {details}")
-        new_record = pd.DataFrame(
-            {'Arrival Time': [arrival_time], 'Event': [event], 'Time': [time], 'Details': [details]})
+        new_record = pd.DataFrame({
+            'Arrival Time': [arrival_time], 'Event': [event], 'Time': [time], 'Details': [details],
+            'Passenger ID': [passenger_id], 'Gate Type': [gate_type], 'Seat Type': [seat_type],
+            'Station': [station], 'Duration': [duration]
+        })
         self.daily_log = pd.concat([self.daily_log, new_record], ignore_index=True)
 
     def reset_daily_log(self):
@@ -37,7 +47,8 @@ class Logger:
         Resets the daily log to an empty DataFrame.
         :return:
         """
-        self.daily_log = pd.DataFrame(columns=['Arrival Time', 'Event', 'Time', 'Details'])
+        self.daily_log = pd.DataFrame(columns=['Arrival Time', 'Event', 'Time', 'Details',
+                                                'Passenger ID', 'Gate Type', 'Seat Type', 'Station', 'Duration'])
 
     def save_daily_log(self, day):
         """
