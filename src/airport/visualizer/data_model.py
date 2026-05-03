@@ -26,10 +26,32 @@ class PassengerTimeline:
     gate_type: str
     seat_type: str
     bags: int = 0
+    cost: float = 0.0
     events: List[PassengerEvent] = field(default_factory=list)
     arrival_time: float = 0.0
     departure_time: float = 0.0
     visual_departure_time: float = 0.0
+
+
+@dataclass
+class PassengerState:
+    current_station: Optional[str]
+    next_station: Optional[str]
+    fraction: float
+    station_arrival_time: float
+    event: str
+
+
+@dataclass
+class StatsTimeSeries:
+    arrival_times: List[float] = field(default_factory=list)
+    boarding_events: List[Tuple[float, float]] = field(default_factory=list)
+    refund_events: List[Tuple[float, float]] = field(default_factory=list)
+    late_times: List[float] = field(default_factory=list)
+    queue_times: List[float] = field(default_factory=list)
+    dequeue_times: List[float] = field(default_factory=list)
+    departure_events: List[Tuple[float, float]] = field(default_factory=list)
+    worker_count: int = 0
 
 
 @dataclass
@@ -91,6 +113,7 @@ class SimulationData:
 
         # Sorted list of (arrival_time, passenger_id) for efficient window queries
         self._sorted_arrivals: List[Tuple[float, int]] = []
+        self.stats: StatsTimeSeries = StatsTimeSeries()
 
         self._load()
 
@@ -125,6 +148,7 @@ class SimulationData:
 
         self._discover_stations()
         self._build_timelines()
+        self._build_stats()
 
     def _discover_stations(self) -> None:
         raw = self.df['Station'].dropna().unique()
@@ -186,6 +210,8 @@ class SimulationData:
                 seat_type = str(chunk[0].get('Seat Type', ''))
                 bags_raw = chunk[0].get('Bags')
                 bags = int(bags_raw) if pd.notna(bags_raw) else 0
+                cost_raw = chunk[0].get('Cost')
+                cost = float(cost_raw) if pd.notna(cost_raw) else 0.0
 
                 # Deduplicate gate bug: keep first Gate Arrival / Boarding only
                 seen_gate_arrival = False
@@ -223,6 +249,7 @@ class SimulationData:
                     gate_type=gate_type,
                     seat_type=seat_type,
                     bags=bags,
+                    cost=cost,
                     events=events,
                     arrival_time=events[0].time,
                     departure_time=events[-1].end_time,
@@ -234,6 +261,63 @@ class SimulationData:
         # Build sorted arrival list for efficient range queries
         self._sorted_arrivals = sorted(
             (tl.arrival_time, pid) for pid, tl in self.passengers.items()
+        )
+
+    def _build_stats(self) -> None:
+        """Pre-compute sorted event lists for the real-time stats panel."""
+        cats = self.station_categories
+        worker_count = (
+            len(cats.get('business_checkin', []))
+            + len(cats.get('coach_checkin', []))
+            + len(cats.get('security', []))
+        )
+
+        arrival_times = []
+        boarding_events = []
+        refund_events = []
+        late_times = []
+        queue_times = []
+        dequeue_times = []
+
+        for tl in self.passengers.values():
+            arrival_times.append(tl.arrival_time)
+            for ev in tl.events:
+                if ev.event in ('Boarding', 'Boarding from Queue'):
+                    boarding_events.append((ev.time, tl.cost))
+                    if ev.event == 'Boarding from Queue':
+                        dequeue_times.append(ev.time)
+                elif ev.event == 'Refund':
+                    refund_events.append((ev.time, tl.cost))
+                elif ev.event == 'Late':
+                    late_times.append(ev.time)
+                elif ev.event == 'Queue':
+                    queue_times.append(ev.time)
+
+        # Flight departures from raw DataFrame (no Passenger ID).
+        departure_events = []
+        flight_df = self.df[self.df['Event'] == 'Flight Departure']
+        for _, row in flight_df.iterrows():
+            cost = float(row['Cost']) if pd.notna(row.get('Cost')) else 0.0
+            departure_events.append((float(row['Time']), cost))
+
+        # Sort all lists by time for bisect queries
+        arrival_times.sort()
+        boarding_events.sort()
+        refund_events.sort()
+        late_times.sort()
+        queue_times.sort()
+        dequeue_times.sort()
+        departure_events.sort()
+
+        self.stats = StatsTimeSeries(
+            arrival_times=arrival_times,
+            boarding_events=boarding_events,
+            refund_events=refund_events,
+            late_times=late_times,
+            queue_times=queue_times,
+            dequeue_times=dequeue_times,
+            departure_events=departure_events,
+            worker_count=worker_count,
         )
 
     @staticmethod
@@ -274,10 +358,9 @@ class SimulationData:
 
     def get_passenger_state(
         self, timeline: PassengerTimeline, t: float
-    ) -> Optional[Tuple[Optional[str], Optional[str], float, float]]:
-        """For a passenger at time t, return (current_station, next_station, fraction, station_arrival_time).
+    ) -> Optional[PassengerState]:
+        """Return the passenger's visual state at time t, or None if inactive.
 
-        Returns None if the passenger is not active at time t.
         Uses visual_time for smooth interpolated movement.
         station_arrival_time is the visual_time of the current event - used for FIFO queue ordering.
         """
@@ -290,13 +373,13 @@ class SimulationData:
         idx = bisect_right(vtimes, t) - 1
         if idx < 0:
             # Before first visual event - place at entrance
-            return ('Entrance', events[0].station, 0.0, events[0].visual_time)
+            return PassengerState('Entrance', events[0].station, 0.0, events[0].visual_time, 'Arrival')
 
         current = events[idx]
 
         # Inside a duration-based event (e.g. security screening): stay put
         if current.visual_end_time > current.visual_time and t < current.visual_end_time:
-            return (current.station, current.station, 0.0, current.visual_time)
+            return PassengerState(current.station, current.station, 0.0, current.visual_time, current.event)
 
         # Interpolate toward next event
         if idx + 1 < len(events):
@@ -307,15 +390,14 @@ class SimulationData:
                 frac = min(1.0, max(0.0, (t - start_t) / (end_t - start_t)))
             else:
                 frac = 1.0
-            return (current.station, nxt.station, frac, current.visual_time)
+            return PassengerState(current.station, nxt.station, frac, current.visual_time, current.event)
 
         # Past last event - stay at final station
-        return (current.station, current.station, 0.0, current.visual_time)
+        return PassengerState(current.station, current.station, 0.0, current.visual_time, current.event)
 
-    def get_active_passengers(self, t: float) -> Dict[int, Tuple[Optional[str], Optional[str], float, float]]:
-        """Return {pid: (current_station, next_station, frac, station_arrival_time)} for all
-        passengers active at simulation time t."""
-        result: Dict[int, Tuple[Optional[str], Optional[str], float, float]] = {}
+    def get_active_passengers(self, t: float) -> Dict[int, PassengerState]:
+        """Return {pid: PassengerState} for all passengers active at simulation time t."""
+        result: Dict[int, PassengerState] = {}
         for arrival_t, pid in self._sorted_arrivals:
             if arrival_t > t:
                 break

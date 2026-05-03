@@ -9,9 +9,9 @@ from src.airport.context import SimulationContext
 from src.airport.flight import Flight
 from src.airport.logger import Logger
 from src.airport.passenger import Passenger
-from src.airport.checkinCounter import CheckinCounter
 from src.airport.securityScreening import SecurityScreening
-from src.airport.gate import Gate
+
+HOURLY_RATE = 20
 
 
 class Simulation:
@@ -58,7 +58,7 @@ class Simulation:
             passenger = Passenger(gate_type, seat_type, arrival_time)
             self.logger.log_event(arrival_time, 'Arrival', arrival_time, 'Passenger arrived',
                                   passenger_id=passenger.id, gate_type=gate_type, seat_type=seat_type,
-                                  num_bags=passenger.num_bags)
+                                  num_bags=passenger.num_bags, cost=passenger.cost)
             self.env.process(self.airport.process_passenger(passenger))
 
     def print_and_log_totals(self):
@@ -69,15 +69,17 @@ class Simulation:
         """
         total_revenue = Passenger.ticket_revenue
         total_flight_cost = Flight.flight_cost
-        total_checkin_cost = (self.simulation_time / 3600) * (CoachCounter.number_of_agents) * (
-            BusinessClassCounter.number_of_agents)
-        total_cost = total_flight_cost + total_checkin_cost
+        total_workers = (CoachCounter.number_of_agents
+                         + BusinessClassCounter.number_of_agents
+                         + SecurityScreening.number_of_stations)
+        total_worker_cost = (self.simulation_time / 3600) * total_workers * HOURLY_RATE
+        total_cost = total_flight_cost + total_worker_cost
         print(f"Total Number of Passengers: {Passenger.passenger_count}")
         print(f"Total number of flights: {Flight.flight_number}")
-        print(f"Total Agents: {CoachCounter.number_of_agents + BusinessClassCounter.number_of_agents}")
+        print(f"Total Workers: {total_workers}")
         print(f"Total revenue: ${total_revenue}")
         print(f"Flights cost: ${total_flight_cost}")
-        print(f"Counters cost: ${total_checkin_cost}")
+        print(f"Workers cost: ${total_worker_cost}")
         print(f"Total cost: ${total_cost}")
         self.logger.log_event(self.env.now, 'Total Revenue', self.env.now, f"Total revenue: ${total_revenue}")
         self.logger.log_event(self.env.now, 'Total Cost', self.env.now, f"Total cost: ${total_cost}")
@@ -90,6 +92,8 @@ class Simulation:
         self.env.process(self.generate_passenger_arrivals())
         for gate in self.airport.regional_gates:
             self.env.process(gate.process_queue())  # Process passengers in queue
+        for gate in self.airport.regional_gates + self.airport.provincial_gates:
+            self.env.process(gate.schedule_departures())
         self.env.run(until=self.simulation_time)
         print(f"Simulation ended at time {self.env.now}")
 

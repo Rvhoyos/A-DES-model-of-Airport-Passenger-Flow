@@ -11,6 +11,7 @@ from .data_model import SimulationData
 from .airport_scene import AirportScene, AirportView
 from .playback_controls import PlaybackEngine, PlaybackControls
 from .histogram_tab import HistogramTab
+from .stats_panel import StatsEngine, StatsPanel
 
 
 class MainWindow(QMainWindow):
@@ -36,9 +37,12 @@ class MainWindow(QMainWindow):
 
         self.scene = AirportScene(data)
         self.view = AirportView(self.scene)
+        self.stats_engine = StatsEngine(data.stats)
+        self.stats_panel = StatsPanel()
         self.controls = PlaybackControls(self.engine, data.day_boundaries)
 
         playback_layout.addWidget(self.view, stretch=1)
+        playback_layout.addWidget(self.stats_panel)
         playback_layout.addWidget(self.controls)
         tabs.addTab(playback_widget, 'Playback')
 
@@ -67,6 +71,7 @@ class MainWindow(QMainWindow):
     def _on_time(self, t: float) -> None:
         active = self.scene.update_to_time(t)
         self.controls.set_active_count(active)
+        self.stats_panel.update_stats(self.stats_engine.compute(t))
         # Dismiss popup when playback is running (user hit play)
         if self.engine.playing:
             self.scene.dismiss_popup()

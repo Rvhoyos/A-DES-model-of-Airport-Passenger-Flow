@@ -17,10 +17,10 @@ class Logger:
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         self.daily_log = pd.DataFrame(columns=['Arrival Time', 'Event', 'Time', 'Details',
-                                                'Passenger ID', 'Gate Type', 'Seat Type', 'Station', 'Duration', 'Bags'])
+                                                'Passenger ID', 'Gate Type', 'Seat Type', 'Station', 'Duration', 'Bags', 'Cost'])
 
     def log_event(self, arrival_time, event, time, details,
-                  passenger_id=None, gate_type=None, seat_type=None, station=None, duration=None, num_bags=None):
+                  passenger_id=None, gate_type=None, seat_type=None, station=None, duration=None, num_bags=None, cost=None):
         """
         Logs an event with arrival time, event type, time, and details.
         :param arrival_time:
@@ -38,7 +38,7 @@ class Logger:
         new_record = pd.DataFrame({
             'Arrival Time': [arrival_time], 'Event': [event], 'Time': [time], 'Details': [details],
             'Passenger ID': [passenger_id], 'Gate Type': [gate_type], 'Seat Type': [seat_type],
-            'Station': [station], 'Duration': [duration], 'Bags': [num_bags]
+            'Station': [station], 'Duration': [duration], 'Bags': [num_bags], 'Cost': [cost]
         })
         self.daily_log = pd.concat([self.daily_log, new_record], ignore_index=True)
 
@@ -48,7 +48,7 @@ class Logger:
         :return:
         """
         self.daily_log = pd.DataFrame(columns=['Arrival Time', 'Event', 'Time', 'Details',
-                                                'Passenger ID', 'Gate Type', 'Seat Type', 'Station', 'Duration', 'Bags'])
+                                                'Passenger ID', 'Gate Type', 'Seat Type', 'Station', 'Duration', 'Bags', 'Cost'])
 
     def save_daily_log(self, day):
         """

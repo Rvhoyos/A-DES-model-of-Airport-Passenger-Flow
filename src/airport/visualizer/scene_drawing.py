@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 SCENE_WIDTH = 1200
 SCENE_HEIGHT = 700
 STATION_W = 130
+STATION_W_SMALL = 60
 STATION_H = 40
 DOT_RADIUS = 4
 
@@ -117,7 +118,9 @@ def draw_station_rects(scene: AirportScene) -> None:
     """Draw rounded station rectangles with accent bar and queue area indicator."""
     for name, center in scene.station_positions.items():
         border_col = station_border_color(name)
-        x = center.x() - STATION_W / 2
+        is_small = name.endswith(' B') or name.endswith(' C')
+        w = STATION_W_SMALL if is_small else STATION_W
+        x = center.x() - w / 2
         y = center.y() - STATION_H / 2
 
         # Queue area indicator (toward corridor side of station)
@@ -125,7 +128,7 @@ def draw_station_rects(scene: AirportScene) -> None:
         q_area_h = 60
         q_area_y = center.y() - STATION_H / 2 - q_area_h if q_dir > 0 \
             else center.y() + STATION_H / 2
-        q_rect = QGraphicsRectItem(x + 10, q_area_y, STATION_W - 20, q_area_h)
+        q_rect = QGraphicsRectItem(x + 5, q_area_y, w - 10, q_area_h)
         q_rect.setBrush(QBrush(QColor(255, 255, 255, 5)))
         q_rect.setPen(QPen(QColor(255, 255, 255, 12), 0.5, Qt.PenStyle.DotLine))
         q_rect.setZValue(0)
@@ -133,7 +136,7 @@ def draw_station_rects(scene: AirportScene) -> None:
 
         # Main rect (rounded via QPainterPath)
         path = QPainterPath()
-        path.addRoundedRect(QRectF(x, y, STATION_W, STATION_H), 6, 6)
+        path.addRoundedRect(QRectF(x, y, w, STATION_H), 6, 6)
         item = QGraphicsPathItem(path)
         item.setBrush(QBrush(STATION_FILL))
         item.setPen(QPen(QColor(255, 255, 255, 25), 1))
@@ -147,8 +150,9 @@ def draw_station_rects(scene: AirportScene) -> None:
         accent.setZValue(2)
         scene.addItem(accent)
 
-        # Label
-        label = QGraphicsSimpleTextItem(name)
+        # Label (short name for split security sub-stations)
+        display_name = 'Business' if name.endswith(' B') else 'Coach' if name.endswith(' C') else name
+        label = QGraphicsSimpleTextItem(display_name)
         label.setBrush(QBrush(TEXT_PRIMARY))
         label.setFont(FONT_LABEL)
         br = label.boundingRect()

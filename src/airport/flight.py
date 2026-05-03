@@ -8,7 +8,7 @@ class Flight:
         total_seats (dict): The total number of seats on the flight.
         available_seats (dict): The number of available seats on the flight.
         number (int): The unique flight number assigned to the flight.
-        operation_cost (int): An ongoing sum of all the simulated costs of operating each flight.
+        operation_cost (int): The cost of operating this flight (regional=1500, provincial=12000).
     """
     flight_number = 0  # static variable to keep track of the number of flights
     flight_cost = 0
@@ -20,7 +20,7 @@ class Flight:
         :param departure_time:
         """
         self.flight_type = flight_type
-        self.departure_time = departure_time  # Set the departure time when creating the flight
+        self.departure_time = departure_time
         if flight_type == 'regional':
             self.total_seats = {'coach': 40}
             self.available_seats = {'coach': 40}
@@ -31,6 +31,7 @@ class Flight:
         self.number = Flight.flight_number  # Assign flight number
         self.operation_cost = 12000 if flight_type == 'provincial' else 1500
         Flight.flight_cost += self.operation_cost
+        self.departed = False
 
     def board_passenger(self, passenger):
         """
@@ -50,10 +51,13 @@ class Flight:
         :param logger:
         :return:
         """
-        print(f"Flight {self.number} is departing at time {self.departure_time}")  # New print statement
+        if self.departed:
+            return
+        self.departed = True
+        print(f"Flight {self.number} is departing at time {self.departure_time}")
         details = f'Flight {self.number} departed with {self.available_seats} seats left out of {self.total_seats}'
         logger.log_event(self.departure_time, 'Flight Departure', self.departure_time, details,
-                         station=f'Flight {self.number} ({self.flight_type})')
+                         station=f'Flight {self.number} ({self.flight_type})', cost=self.operation_cost)
 
     def __str__(self):
         """

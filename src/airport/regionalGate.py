@@ -6,14 +6,13 @@ from src.airport.gate import Gate
 
 class RegionalGate(Gate):
     """
-    Abstract base class for an airport gate. Subclasses should implement specific
-    behaviors for regional and provincial gates.
+    Gate for regional flights. Regional passengers board if seats are available,
+    otherwise they queue (SimPy Store) and board the next flight with open seats.
 
     Attributes:
-        env (simpy.Environment): The simulation environment.
-        current_flight (Flight): The current flight at the gate.
-        schedule (list): The schedule of flights at the gate.
-        logger (Logger): Logger instance for event logging.
+        flight_schedule (list): Hourly regional flights starting at 00:30 each day.
+        queue (simpy.Store): Overflow queue for passengers when flights are full.
+        gate_name (str): Display name for logging.
     """
     number_of_regional_gates = 0  # Class variable to keep track of the number of Regional gates
 
@@ -33,7 +32,6 @@ class RegionalGate(Gate):
         """
         Sets the flight schedule for the regional gate.
         :param simulation_time:
-        Args:
         """
         num_days = int(simulation_time / 86400)  # Convert simulation time to days
         self.flight_schedule = [Flight('regional', day * 24 * 60 * 60 + departure_time)
@@ -43,18 +41,15 @@ class RegionalGate(Gate):
 
     def handle_passenger(self, passenger):
         """
-        Handles a regional passenger at the gate.
-        #todo: Is a simpy process?
+        Handles a regional passenger at the gate. SimPy generator process:
+        yielded via env.process() in Airport.process_passenger().
         :param passenger:
-        Args:
-            passenger (Passenger): The passenger to handle.
         """
         start_time = self.env.now  # Time when handling starts
         self.logger.log_event(passenger.arrival_time, 'Gate Arrival', self.env.now,
                               f'Arrived at {self.gate_name}',
                               passenger_id=passenger.id, station=self.gate_name)
         current_flight = self.find_current_flight(start_time)
-        self.check_flight_departure()  # Check if the current flight should depart
 
         print(f"Handling regional passenger at time {start_time}")  # Debugging print statement
 
@@ -84,7 +79,6 @@ class RegionalGate(Gate):
         :return:
         """
         while True:
-            # ("Starting queue processing")
             if not self.queue.items:
                 yield self.env.timeout(1)  # Check the queue again after some time if it's empty
                 continue

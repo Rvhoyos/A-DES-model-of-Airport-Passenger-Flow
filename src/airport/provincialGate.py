@@ -38,17 +38,15 @@ class ProvincialGate(Gate):
 
     def handle_passenger(self, passenger):
         """
-        Handles a provincial passenger at the gate.
-        todo: Is a simpy process?
+        Handles a provincial passenger at the gate. SimPy generator process:
+        yielded via env.process() in Airport.process_passenger().
         :param passenger:
-        :return:
         """
         current_time = self.env.now
         self.logger.log_event(passenger.arrival_time, 'Gate Arrival', self.env.now,
                               f'Arrived at {self.gate_name}',
                               passenger_id=passenger.id, station=self.gate_name)
         current_flight = self.find_current_flight(current_time)
-        self.check_flight_departure()  # Check if the current flight should depart
         print(f"Handling provincial passenger at time {self.env.now}")  # Debugging print statement
 
         if current_flight and current_flight.available_seats[passenger.seat_type] > 0:
@@ -58,7 +56,6 @@ class ProvincialGate(Gate):
                                   passenger_id=passenger.id, station=self.gate_name)
 
         else:
-            # todo logging boarding might be not needed.
             print(f"No seats available at time {current_time}.")
             self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'No seats available',
                                   passenger_id=passenger.id, station=self.gate_name)

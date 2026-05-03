@@ -11,10 +11,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPen, QBrush, QColor, QPainter, QTransform
 from PyQt6.QtCore import Qt, QPointF, pyqtSignal
 
-from .data_model import SimulationData, PassengerTimeline, FADE_OUT_BUFFER
+from .data_model import SimulationData, PassengerTimeline, PassengerState, FADE_OUT_BUFFER
 from .theme import (
     SCENE_BG, COLOR_ENTRANCE, FONT_LABEL, FONT_SMALL,
-    PANEL, HIGHLIGHT, TEXT_PRIMARY, TEXT_SECONDARY, passenger_color,
+    PANEL, HIGHLIGHT, TEXT_PRIMARY, TEXT_SECONDARY,
+    COLOR_REFUND, COLOR_LATE, passenger_color,
 )
 from .scene_drawing import (
     draw_zones, draw_corridor, draw_station_rects, draw_legend,
@@ -161,8 +162,16 @@ class AirportScene(QGraphicsScene):
             checkin = cats.get('business_checkin', []) + cats.get('coach_checkin', [])
             self._place_alternating(checkin, COL_CHECKIN)
 
-        # Security: alternate above/below corridor, #1 nearest
-        self._place_alternating(cats.get('security', []), COL_SECURITY)
+        # Security: split each station into business/coach sub-positions
+        self._security_stations = set(cats.get('security', []))
+        for i, name in enumerate(cats.get('security', [])):
+            side = -1 if i % 2 == 0 else 1
+            tier = i // 2
+            base_y = CORRIDOR_Y + side * (65 + tier * 85)
+            self.station_positions[f'{name} B'] = QPointF(COL_SECURITY - 35, base_y)
+            self.station_positions[f'{name} C'] = QPointF(COL_SECURITY + 35, base_y)
+            self._queue_dirs[f'{name} B'] = side
+            self._queue_dirs[f'{name} C'] = side
 
         # Gates: regional fan above corridor, provincial fan below
         # #1 of each type is closest to the corridor
@@ -195,6 +204,12 @@ class AirportScene(QGraphicsScene):
             y = CORRIDOR_Y + direction * (base_gap + i * spacing)
             self.station_positions[name] = QPointF(x, y)
             self._queue_dirs[name] = direction  # station side: queue grows toward corridor
+
+    def _resolve_station(self, station: Optional[str], seat_type: str) -> Optional[str]:
+        """Map CSV station name to visual position. Splits security by seat type."""
+        if station in self._security_stations:
+            return f'{station} B' if seat_type == 'business' else f'{station} C'
+        return station
 
     # ===================================================================
     # Corridor pathing
@@ -341,38 +356,38 @@ class AirportScene(QGraphicsScene):
         active = self.data.get_active_passengers(t)
 
         # --- Pass 1: collect stationary passengers per station for FIFO ordering ---
-        # station_name -> [(pid, station_arrival_time), ...]
         station_pax: Dict[str, List[Tuple[int, float]]] = defaultdict(list)
-        # pid -> (cur_station, nxt_station, frac, station_arrival_time)
-        transit_pax: Dict[int, Tuple] = {}
+        transit_pax: Dict[int, PassengerState] = {}
 
-        for pid, (cur_station, nxt_station, frac, arr_t) in active.items():
-            # frac near 0 or 1 means the passenger is at (not between) a station
-            if frac <= 0.01 or frac >= 0.99:
-                at_station = cur_station if frac <= 0.01 else nxt_station
+        for pid, state in active.items():
+            tl = self.data.passengers[pid]
+            if state.fraction <= 0.01 or state.fraction >= 0.99:
+                at_station = state.current_station if state.fraction <= 0.01 else state.next_station
                 if at_station is None:
                     at_station = 'Entrance'
-                station_pax[at_station].append((pid, arr_t))
+                at_station = self._resolve_station(at_station, tl.seat_type)
+                station_pax[at_station].append((pid, state.station_arrival_time))
             else:
-                transit_pax[pid] = (cur_station, nxt_station, frac)
+                transit_pax[pid] = state
 
         # Sort each station's passengers by station_arrival_time (FIFO: earliest = front)
-        station_slots: Dict[str, Dict[int, int]] = {}  # station -> {pid: slot}
+        station_slots: Dict[str, Dict[int, int]] = {}
         for station, pax_list in station_pax.items():
-            pax_list.sort(key=lambda x: x[1])  # sort by arrival time at this station
+            pax_list.sort(key=lambda x: x[1])
             station_slots[station] = {pid: slot for slot, (pid, _) in enumerate(pax_list)}
 
-        # --- Pass 2: position all dots ---
+        # --- Pass 2: position and color all dots ---
         for pid, state in active.items():
             tl = self.data.passengers[pid]
             dot = self._get_or_create_dot(pid, tl)
 
             if pid in transit_pax:
-                cur_station, nxt_station, frac = transit_pax[pid]
-                path = self._build_path(cur_station, nxt_station)
-                pos = interpolate_along_path(path, frac)
+                ts = transit_pax[pid]
+                src = self._resolve_station(ts.current_station, tl.seat_type)
+                dst = self._resolve_station(ts.next_station, tl.seat_type)
+                path = self._build_path(src, dst)
+                pos = interpolate_along_path(path, ts.fraction)
             else:
-                # Find which station this passenger is at and their FIFO slot
                 for station, slot_map in station_slots.items():
                     if pid in slot_map:
                         base = self._station_pos(station)
@@ -381,6 +396,14 @@ class AirportScene(QGraphicsScene):
                         break
                 else:
                     pos = self._station_pos(None)
+
+            # Recolor dot based on outcome event
+            if state.event == 'Refund':
+                dot.setBrush(QBrush(COLOR_REFUND))
+            elif state.event == 'Late':
+                dot.setBrush(QBrush(COLOR_LATE))
+            else:
+                dot.setBrush(QBrush(passenger_color(tl.gate_type, tl.seat_type)))
 
             opacity = self._compute_opacity(tl, t)
             dot.setPos(pos)

@@ -23,6 +23,10 @@ COLOR_COMMUTER_COACH = QColor('#4CAF50')       # green
 COLOR_PROVINCIAL_COACH = QColor('#2196F3')     # blue
 COLOR_PROVINCIAL_BIZ = QColor('#FFD700')       # gold
 
+# -- Outcome colors (dot recoloring) -------------------------------------
+COLOR_REFUND = QColor('#FF8C00')              # orange
+COLOR_LATE = QColor('#FF4444')                # red
+
 # -- Station border colors -----------------------------------------------
 COLOR_ENTRANCE = QColor('#888888')             # gray
 COLOR_CHECKIN = QColor('#ffffff')              # white
@@ -62,6 +66,8 @@ def passenger_color(gate_type: str, seat_type: str) -> QColor:
 
 def station_border_color(station_name: str) -> QColor:
     name = station_name.lower()
+    if name.endswith(' b') and 'security' in name:
+        return COLOR_PROVINCIAL_BIZ
     if 'security' in name:
         return COLOR_SECURITY
     if 'regional' in name:
