@@ -1,0 +1,87 @@
+from __future__ import annotations
+
+import sys
+
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout,
+    QTabWidget, QStatusBar,
+)
+from .theme import apply_dark_theme
+from .data_model import SimulationData
+from .airport_scene import AirportScene, AirportView
+from .playback_controls import PlaybackEngine, PlaybackControls
+from .histogram_tab import HistogramTab
+
+
+class MainWindow(QMainWindow):
+
+    def __init__(self, data: SimulationData):
+        super().__init__()
+        self.data = data
+
+        self.setWindowTitle('Smiths Falls Airport DES - Simulation Playback')
+        self.resize(1400, 900)
+
+        # -- Playback engine --
+        self.engine = PlaybackEngine(data.min_time, data.max_time, self)
+
+        # -- Tab widget --
+        tabs = QTabWidget()
+
+        # Tab 1: Playback
+        playback_widget = QWidget()
+        playback_layout = QVBoxLayout(playback_widget)
+        playback_layout.setContentsMargins(0, 0, 0, 0)
+        playback_layout.setSpacing(0)
+
+        self.scene = AirportScene(data)
+        self.view = AirportView(self.scene)
+        self.controls = PlaybackControls(self.engine, data.day_boundaries)
+
+        playback_layout.addWidget(self.view, stretch=1)
+        playback_layout.addWidget(self.controls)
+        tabs.addTab(playback_widget, 'Playback')
+
+        # Tab 2: Analytics
+        self.histograms = HistogramTab(data)
+        tabs.addTab(self.histograms, 'Analytics')
+
+        self.setCentralWidget(tabs)
+
+        # -- Status bar --
+        self.status = QStatusBar()
+        self.setStatusBar(self.status)
+        self.status.showMessage(
+            f'{len(data.passengers)} passengers | '
+            f'{len(data.day_boundaries)} sim-days | '
+            f'Time: {data.min_time:.0f}s - {data.max_time:.0f}s'
+        )
+
+        # -- Wire signals --
+        self.engine.time_changed.connect(self._on_time)
+
+        # Initial render at start time
+        self._on_time(data.min_time)
+
+    def _on_time(self, t: float) -> None:
+        active = self.scene.update_to_time(t)
+        self.controls.set_active_count(active)
+
+    def keyPressEvent(self, event) -> None:
+        # Forward keyboard events to controls for play/pause/seek
+        self.controls.keyPressEvent(event)
+
+
+def main():
+    app = QApplication(sys.argv)
+    apply_dark_theme(app)
+
+    data = SimulationData.from_directory()
+    window = MainWindow(data)
+    window.show()
+
+    sys.exit(app.exec())
+
+
+if __name__ == '__main__':
+    main()
