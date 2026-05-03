@@ -52,8 +52,7 @@ class RegionalGate(Gate):
         start_time = self.env.now  # Time when handling starts
         self.logger.log_event(passenger.arrival_time, 'Gate Arrival', self.env.now,
                               f'Arrived at {self.gate_name}',
-                              passenger_id=passenger.id, gate_type=passenger.gate_type,
-                              seat_type=passenger.seat_type, station=self.gate_name)
+                              passenger_id=passenger.id, station=self.gate_name)
         current_flight = self.find_current_flight(start_time)
         self.check_flight_departure()  # Check if the current flight should depart
 
@@ -66,8 +65,7 @@ class RegionalGate(Gate):
                 f"A passenger boards the regional flight departing {current_flight.departure_time}, at time {start_time}. Service Time: {service_time} seconds")
             self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now,
                                   f'Boarded regional flight successfully. Service Time: {service_time} seconds',
-                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                  seat_type=passenger.seat_type, station=self.gate_name,
+                                  passenger_id=passenger.id, station=self.gate_name,
                                   duration=service_time)
         else:
             print(f"Flight at {current_flight.departure_time} is full. A passenger is queued for next flight.")
@@ -78,8 +76,7 @@ class RegionalGate(Gate):
                 f"Passenger {passenger.arrival_time} was queued and waited {waiting_time} seconds,before boarding.")
             self.logger.log_event(passenger.arrival_time, 'Queue', self.env.now,
                                   f'Passenger queued for next regional flight. Waiting Time: {waiting_time} seconds',
-                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                  seat_type=passenger.seat_type, station=self.gate_name)
+                                  passenger_id=passenger.id, station=self.gate_name)
 
     def process_queue(self):
         """
@@ -100,7 +97,6 @@ class RegionalGate(Gate):
                     f"A queued passenger boards the regional flight departing {current_flight.departure_time}, at time {current_time}.")
                 self.logger.log_event(passenger.arrival_time, 'Boarding from Queue', self.env.now,
                                       'Boarded regional flight from queue',
-                                      passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                      seat_type=passenger.seat_type, station=self.gate_name)
+                                      passenger_id=passenger.id, station=self.gate_name)
             else:
                 yield self.env.timeout(1)  # Wait before checking the queue again

@@ -57,7 +57,8 @@ class Simulation:
 
             passenger = Passenger(gate_type, seat_type, arrival_time)
             self.logger.log_event(arrival_time, 'Arrival', arrival_time, 'Passenger arrived',
-                                  passenger_id=passenger.id, gate_type=gate_type, seat_type=seat_type)
+                                  passenger_id=passenger.id, gate_type=gate_type, seat_type=seat_type,
+                                  num_bags=passenger.num_bags)
             self.env.process(self.airport.process_passenger(passenger))
 
     def print_and_log_totals(self):

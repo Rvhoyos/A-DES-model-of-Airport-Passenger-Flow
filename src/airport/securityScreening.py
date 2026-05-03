@@ -43,13 +43,11 @@ class SecurityScreening:
         with machine.request() as req:
             self.logger.log_event(passenger.arrival_time, 'Security Queue', self.env.now,
                                   'Entered security screening queue',
-                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                  seat_type=passenger.seat_type, station=self.station_name)
+                                  passenger_id=passenger.id, station=self.station_name)
             yield req
             self.logger.log_event(passenger.arrival_time, 'Security Start', self.env.now,
                                   'Started security screening',
-                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                  seat_type=passenger.seat_type, station=self.station_name)
+                                  passenger_id=passenger.id, station=self.station_name)
             screening_time = np.random.exponential(3 * 60)  # Screening time in seconds
             start_time = self.env.now
             yield self.env.timeout(screening_time)
@@ -60,6 +58,5 @@ class SecurityScreening:
                 'Security Screening',
                 start_time,
                 f'Screening completed in {screening_time} seconds',
-                passenger_id=passenger.id, gate_type=passenger.gate_type,
-                seat_type=passenger.seat_type, station=self.station_name, duration=screening_time
+                passenger_id=passenger.id, station=self.station_name, duration=screening_time
             )

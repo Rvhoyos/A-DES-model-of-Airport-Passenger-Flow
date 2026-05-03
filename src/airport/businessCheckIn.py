@@ -32,13 +32,11 @@ class BusinessClassCounter(CheckinCounter):
         with self.counter.request() as req:
             self.logger.log_event(passenger.arrival_time, 'Check-in Queue', self.env.now,
                                   'Entered business check-in queue',
-                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                  seat_type=passenger.seat_type, station=self.station_name)
+                                  passenger_id=passenger.id, station=self.station_name)
             yield req
             self.logger.log_event(passenger.arrival_time, 'Check-in Start', self.env.now,
                                   'Started business check-in service',
-                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                  seat_type=passenger.seat_type, station=self.station_name)
+                                  passenger_id=passenger.id, station=self.station_name)
             boarding_pass_time = self.print_boarding_pass()
             bag_check_time = self.check_bags(passenger)
             problem_delay_time = self.handle_problems_and_delays()
@@ -46,6 +44,5 @@ class BusinessClassCounter(CheckinCounter):
             print(f"Business passenger {passenger.arrival_time} is at the counter.")
             yield self.env.timeout(total_time)  # Use SimPy's timeout for service time
             self.logger.log_event(passenger.arrival_time, 'Check-in', self.env.now, f'B. service time:{total_time}',
-                                  passenger_id=passenger.id, gate_type=passenger.gate_type,
-                                  seat_type=passenger.seat_type, station=self.station_name,
+                                  passenger_id=passenger.id, station=self.station_name,
                                   duration=total_time)
