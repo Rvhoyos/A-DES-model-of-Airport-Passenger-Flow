@@ -160,6 +160,23 @@ def draw_station_rects(scene: AirportScene) -> None:
         label.setZValue(3)
         scene.addItem(label)
 
+        # Capacity bar for gate stations
+        if 'gate' in name.lower():
+            bar_w, bar_h = 6, STATION_H
+            bar_x = x + w + 4
+            bar_y = y
+            bg = QGraphicsRectItem(bar_x, bar_y, bar_w, bar_h)
+            bg.setBrush(QBrush(QColor(255, 255, 255, 15)))
+            bg.setPen(QPen(QColor(255, 255, 255, 30), 0.5))
+            bg.setZValue(1)
+            scene.addItem(bg)
+            fill = QGraphicsRectItem(bar_x, bar_y + bar_h, bar_w, 0)
+            fill.setBrush(QBrush(border_col))
+            fill.setPen(QPen(Qt.PenStyle.NoPen))
+            fill.setZValue(2)
+            scene.addItem(fill)
+            scene._capacity_bars[name] = (fill, bar_x, bar_y, bar_w, bar_h)
+
 
 def draw_legend(scene: AirportScene) -> None:
     """Draw passenger type color legend at the bottom of the scene."""

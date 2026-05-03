@@ -51,6 +51,7 @@ class StatsTimeSeries:
     queue_times: List[float] = field(default_factory=list)
     dequeue_times: List[float] = field(default_factory=list)
     departure_events: List[Tuple[float, float]] = field(default_factory=list)
+    gate_boarding_times: Dict[str, List[float]] = field(default_factory=dict)
     worker_count: int = 0
 
 
@@ -278,12 +279,15 @@ class SimulationData:
         late_times = []
         queue_times = []
         dequeue_times = []
+        gate_boarding: Dict[str, List[float]] = {}
 
         for tl in self.passengers.values():
             arrival_times.append(tl.arrival_time)
             for ev in tl.events:
                 if ev.event in ('Boarding', 'Boarding from Queue'):
                     boarding_events.append((ev.time, tl.cost))
+                    if ev.station:
+                        gate_boarding.setdefault(ev.station, []).append(ev.time)
                     if ev.event == 'Boarding from Queue':
                         dequeue_times.append(ev.time)
                 elif ev.event == 'Refund':
@@ -308,6 +312,8 @@ class SimulationData:
         queue_times.sort()
         dequeue_times.sort()
         departure_events.sort()
+        for times in gate_boarding.values():
+            times.sort()
 
         self.stats = StatsTimeSeries(
             arrival_times=arrival_times,
@@ -317,6 +323,7 @@ class SimulationData:
             queue_times=queue_times,
             dequeue_times=dequeue_times,
             departure_events=departure_events,
+            gate_boarding_times=gate_boarding,
             worker_count=worker_count,
         )
 

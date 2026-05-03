@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from bisect import bisect_right
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
@@ -138,6 +139,8 @@ class AirportScene(QGraphicsScene):
         self._dots: Dict[int, QGraphicsEllipseItem] = {}
         self._visible_pids: set = set()
         self._popup: Optional[PassengerPopup] = None
+        # gate_name -> (fill_rect, bar_x, bar_y, bar_w, bar_h) - populated by draw_station_rects
+        self._capacity_bars: Dict[str, tuple] = {}
 
         self._layout_stations()
         draw_zones(self)
@@ -346,6 +349,17 @@ class AirportScene(QGraphicsScene):
 
         return QPointF(x, y)
 
+    def _overflow_offset(self, station: str, slot: int) -> QPointF:
+        """Position for Nth overflow-queue passenger - opposite side from boarding queue."""
+        queue_dir = self._queue_dirs.get(station, 1)
+        col = slot % 2
+        row = slot // 2
+        spacing = DOT_RADIUS * 2.5
+        x = (col - 0.5) * spacing
+        # Away from corridor (opposite of _queue_offset)
+        y = queue_dir * (STATION_H / 2 + 4 + row * spacing)
+        return QPointF(x, y)
+
     # ===================================================================
     # Main update (called every frame)
     # ===================================================================
@@ -357,6 +371,7 @@ class AirportScene(QGraphicsScene):
 
         # --- Pass 1: collect stationary passengers per station for FIFO ordering ---
         station_pax: Dict[str, List[Tuple[int, float]]] = defaultdict(list)
+        overflow_pax: Dict[str, List[Tuple[int, float]]] = defaultdict(list)
         transit_pax: Dict[int, PassengerState] = {}
 
         for pid, state in active.items():
@@ -366,15 +381,22 @@ class AirportScene(QGraphicsScene):
                 if at_station is None:
                     at_station = 'Entrance'
                 at_station = self._resolve_station(at_station, tl.seat_type)
-                station_pax[at_station].append((pid, state.station_arrival_time))
+                if state.event == 'Queue':
+                    overflow_pax[at_station].append((pid, state.station_arrival_time))
+                else:
+                    station_pax[at_station].append((pid, state.station_arrival_time))
             else:
                 transit_pax[pid] = state
 
-        # Sort each station's passengers by station_arrival_time (FIFO: earliest = front)
+        # Sort each group by station_arrival_time (FIFO: earliest = front)
         station_slots: Dict[str, Dict[int, int]] = {}
         for station, pax_list in station_pax.items():
             pax_list.sort(key=lambda x: x[1])
             station_slots[station] = {pid: slot for slot, (pid, _) in enumerate(pax_list)}
+        overflow_slots: Dict[str, Dict[int, int]] = {}
+        for station, pax_list in overflow_pax.items():
+            pax_list.sort(key=lambda x: x[1])
+            overflow_slots[station] = {pid: slot for slot, (pid, _) in enumerate(pax_list)}
 
         # --- Pass 2: position and color all dots ---
         for pid, state in active.items():
@@ -395,13 +417,24 @@ class AirportScene(QGraphicsScene):
                         pos = QPointF(base.x() + offset.x(), base.y() + offset.y())
                         break
                 else:
-                    pos = self._station_pos(None)
+                    for station, slot_map in overflow_slots.items():
+                        if pid in slot_map:
+                            base = self._station_pos(station)
+                            offset = self._overflow_offset(station, slot_map[pid])
+                            pos = QPointF(base.x() + offset.x(), base.y() + offset.y())
+                            break
+                    else:
+                        pos = self._station_pos(None)
 
             # Recolor dot based on outcome event
             if state.event == 'Refund':
                 dot.setBrush(QBrush(COLOR_REFUND))
             elif state.event == 'Late':
                 dot.setBrush(QBrush(COLOR_LATE))
+            elif state.event == 'Queue':
+                c = passenger_color(tl.gate_type, tl.seat_type)
+                c.setAlpha(120)
+                dot.setBrush(QBrush(c))
             else:
                 dot.setBrush(QBrush(passenger_color(tl.gate_type, tl.seat_type)))
 
@@ -418,7 +451,42 @@ class AirportScene(QGraphicsScene):
                 self._dots[pid].setVisible(False)
         self._visible_pids -= gone
 
+        # --- Update capacity bars ---
+        self._update_capacity_bars(t)
+
         return len(active)
+
+    def _update_capacity_bars(self, t: float) -> None:
+        """Set each gate's capacity bar fill based on boardings since last departure."""
+        gate_bt = self.data.stats.gate_boarding_times
+        for gate, (fill, bx, by, bw, bh) in self._capacity_bars.items():
+            times = gate_bt.get(gate, [])
+            if not times:
+                fill.setRect(bx, by + bh, bw, 0)
+                continue
+            prev_dep = _prev_departure(gate, t)
+            count = bisect_right(times, t) - bisect_right(times, prev_dep)
+            cap = 40 if 'regional' in gate.lower() else 180
+            frac = min(1.0, count / cap) if cap > 0 else 0
+            fill_h = frac * bh
+            fill.setRect(bx, by + bh - fill_h, bw, fill_h)
+
+
+def _prev_departure(station: str, t: float) -> float:
+    """Return the most recent departure time at or before t for this gate type."""
+    day = int(t // 86400)
+    day_start = day * 86400
+    day_offset = t - day_start
+    if 'regional' in station.lower():
+        # Regional: departs at 1800 + n*3600 (hourly from 00:30)
+        if day_offset < 1800:
+            return (day - 1) * 86400 + 1800 + 23 * 3600 if day > 0 else 0
+        n = int((day_offset - 1800) // 3600)
+        return day_start + 1800 + n * 3600
+    else:
+        # Provincial: departs at n*21600 (every 6 hours from 00:00)
+        n = int(day_offset // 21600)
+        return day_start + n * 21600
 
 
 # -----------------------------------------------------------------------
