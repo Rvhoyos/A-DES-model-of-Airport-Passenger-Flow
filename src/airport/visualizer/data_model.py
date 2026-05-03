@@ -25,6 +25,7 @@ class PassengerTimeline:
     passenger_id: int
     gate_type: str
     seat_type: str
+    bags: int = 0
     events: List[PassengerEvent] = field(default_factory=list)
     arrival_time: float = 0.0
     departure_time: float = 0.0
@@ -183,6 +184,8 @@ class SimulationData:
             for chunk in chunks:
                 gate_type = str(chunk[0].get('Gate Type', ''))
                 seat_type = str(chunk[0].get('Seat Type', ''))
+                bags_raw = chunk[0].get('Bags')
+                bags = int(bags_raw) if pd.notna(bags_raw) else 0
 
                 # Deduplicate gate bug: keep first Gate Arrival / Boarding only
                 seen_gate_arrival = False
@@ -219,6 +222,7 @@ class SimulationData:
                     passenger_id=next_visual_id,
                     gate_type=gate_type,
                     seat_type=seat_type,
+                    bags=bags,
                     events=events,
                     arrival_time=events[0].time,
                     departure_time=events[-1].end_time,

@@ -5,13 +5,17 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 from PyQt6.QtWidgets import (
-    QGraphicsScene, QGraphicsView, QGraphicsEllipseItem, QWidget,
+    QGraphicsScene, QGraphicsView, QGraphicsEllipseItem,
+    QGraphicsRectItem, QGraphicsSimpleTextItem, QWidget,
 )
-from PyQt6.QtGui import QPen, QBrush, QColor, QPainter
-from PyQt6.QtCore import Qt, QPointF
+from PyQt6.QtGui import QPen, QBrush, QColor, QPainter, QTransform
+from PyQt6.QtCore import Qt, QPointF, pyqtSignal
 
 from .data_model import SimulationData, PassengerTimeline, FADE_OUT_BUFFER
-from .theme import SCENE_BG, COLOR_ENTRANCE, FONT_LABEL, passenger_color
+from .theme import (
+    SCENE_BG, COLOR_ENTRANCE, FONT_LABEL, FONT_SMALL,
+    PANEL, HIGHLIGHT, TEXT_PRIMARY, TEXT_SECONDARY, passenger_color,
+)
 from .scene_drawing import (
     draw_zones, draw_corridor, draw_station_rects, draw_legend,
     SCENE_WIDTH, SCENE_HEIGHT, STATION_W, STATION_H, DOT_RADIUS,
@@ -63,10 +67,58 @@ def interpolate_along_path(path: List[QPointF], frac: float) -> QPointF:
 
 
 # -----------------------------------------------------------------------
+# Passenger info popup
+# -----------------------------------------------------------------------
+
+class PassengerPopup(QGraphicsRectItem):
+    """A small info panel that appears when a passenger dot is clicked."""
+
+    PADDING = 8
+    LINE_HEIGHT = 16
+
+    def __init__(self, timeline: PassengerTimeline, pos: QPointF,
+                 parent: Optional[QGraphicsRectItem] = None):
+        super().__init__(parent)
+        self.setZValue(100)
+
+        lines = [
+            f"Passenger {timeline.passenger_id}",
+            f"Type: {timeline.gate_type} / {timeline.seat_type}",
+            f"Bags: {timeline.bags}",
+        ]
+
+        # Build text items as children of this rect
+        text_items: List[QGraphicsSimpleTextItem] = []
+        max_width = 0.0
+        for i, line in enumerate(lines):
+            txt = QGraphicsSimpleTextItem(line, self)
+            txt.setFont(FONT_SMALL)
+            txt.setBrush(QBrush(TEXT_PRIMARY if i == 0 else TEXT_SECONDARY))
+            txt.setPos(self.PADDING, self.PADDING + i * self.LINE_HEIGHT)
+            max_width = max(max_width, txt.boundingRect().width())
+            text_items.append(txt)
+
+        # Size the background rect to fit the text
+        w = max_width + self.PADDING * 2
+        h = self.PADDING * 2 + len(lines) * self.LINE_HEIGHT
+        self.setRect(0, 0, w, h)
+
+        bg = QColor(PANEL)
+        bg.setAlpha(230)
+        self.setBrush(QBrush(bg))
+        self.setPen(QPen(HIGHLIGHT, 1))
+
+        # Position: offset to the right and above the dot so it doesn't cover it
+        self.setPos(pos.x() + 12, pos.y() - h - 4)
+
+
+# -----------------------------------------------------------------------
 # Scene
 # -----------------------------------------------------------------------
 
 class AirportScene(QGraphicsScene):
+
+    passenger_clicked = pyqtSignal(int)
 
     def __init__(self, data: SimulationData, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -84,6 +136,7 @@ class AirportScene(QGraphicsScene):
         # passenger_id -> QGraphicsEllipseItem
         self._dots: Dict[int, QGraphicsEllipseItem] = {}
         self._visible_pids: set = set()
+        self._popup: Optional[PassengerPopup] = None
 
         self._layout_stations()
         draw_zones(self)
@@ -188,15 +241,18 @@ class AirportScene(QGraphicsScene):
             return self._dots[pid]
 
         color = passenger_color(timeline.gate_type, timeline.seat_type)
-        dot = QGraphicsEllipseItem(-DOT_RADIUS, -DOT_RADIUS, DOT_RADIUS * 2, DOT_RADIUS * 2)
+        r = DOT_RADIUS + timeline.bags * 1.0
+        dot = QGraphicsEllipseItem(-r, -r, r * 2, r * 2)
         dot.setBrush(QBrush(color))
         dot.setPen(QPen(Qt.PenStyle.NoPen))
         dot.setZValue(10)
         dot.setVisible(False)
         dot.setToolTip(
             f"Passenger {pid}\n"
-            f"Type: {timeline.gate_type}/{timeline.seat_type}"
+            f"Type: {timeline.gate_type}/{timeline.seat_type}\n"
+            f"Bags: {timeline.bags}"
         )
+        dot.setData(0, pid)
         self.addItem(dot)
         self._dots[pid] = dot
         return dot
@@ -213,6 +269,33 @@ class AirportScene(QGraphicsScene):
             elapsed = t - dep
             return max(0.0, 1.0 - elapsed / FADE_OUT_BUFFER)
         return 1.0
+
+    # ===================================================================
+    # Click-to-inspect
+    # ===================================================================
+
+    def mousePressEvent(self, event) -> None:
+        item = self.itemAt(event.scenePos(), QTransform())
+
+        # Check if the clicked item is a passenger dot
+        if item is not None:
+            pid = item.data(0)
+            if pid is not None and pid in self.data.passengers:
+                self.dismiss_popup()
+                tl = self.data.passengers[pid]
+                self._popup = PassengerPopup(tl, item.pos())
+                self.addItem(self._popup)
+                self.passenger_clicked.emit(pid)
+                return
+
+        # Clicked empty space or non-dot item: dismiss popup
+        self.dismiss_popup()
+        super().mousePressEvent(event)
+
+    def dismiss_popup(self) -> None:
+        if self._popup is not None:
+            self.removeItem(self._popup)
+            self._popup = None
 
     # ===================================================================
     # Queue formation

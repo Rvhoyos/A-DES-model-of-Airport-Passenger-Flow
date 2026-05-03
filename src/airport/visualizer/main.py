@@ -59,6 +59,7 @@ class MainWindow(QMainWindow):
 
         # -- Wire signals --
         self.engine.time_changed.connect(self._on_time)
+        self.scene.passenger_clicked.connect(self._on_passenger_clicked)
 
         # Initial render at start time
         self._on_time(data.min_time)
@@ -66,6 +67,13 @@ class MainWindow(QMainWindow):
     def _on_time(self, t: float) -> None:
         active = self.scene.update_to_time(t)
         self.controls.set_active_count(active)
+        # Dismiss popup when playback is running (user hit play)
+        if self.engine.playing:
+            self.scene.dismiss_popup()
+
+    def _on_passenger_clicked(self, pid: int) -> None:
+        self.engine.pause()
+        self.controls.btn_play.setText('Play')
 
     def keyPressEvent(self, event) -> None:
         # Forward keyboard events to controls for play/pause/seek
