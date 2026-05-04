@@ -24,6 +24,9 @@ from .scene_drawing import (
     SCENE_WIDTH, SCENE_HEIGHT, STATION_W, STATION_H, DOT_RADIUS,
     COL_ENTRANCE, COL_CHECKIN, COL_SECURITY, COL_GATES, CORRIDOR_Y,
 )
+from .flight_board import (
+    REGIONAL_FIRST, REGIONAL_INTERVAL, PROVINCIAL_FIRST, PROVINCIAL_INTERVAL, DAY,
+)
 
 # Fade timing (sim-seconds)
 FADE_IN_DURATION = 15.0
@@ -263,6 +266,8 @@ class AirportScene(QGraphicsScene):
         self._popup: Optional[PassengerPopup] = None
         # gate_name -> (fill_rect, bar_x, bar_y, bar_w, bar_h) - populated by draw_station_rects
         self._capacity_bars: Dict[str, tuple] = {}
+        # gate_name -> QGraphicsSimpleTextItem for departure countdown
+        self._departure_timers: Dict[str, QGraphicsSimpleTextItem] = {}
 
         self._layout_stations()
         draw_zones(self)
@@ -597,8 +602,9 @@ class AirportScene(QGraphicsScene):
                 self._dots[pid].setVisible(False)
         self._visible_pids -= gone
 
-        # --- Update capacity bars ---
+        # --- Update capacity bars and departure timers ---
         self._update_capacity_bars(t)
+        self._update_departure_timers(t)
 
         return len(active)
 
@@ -617,22 +623,54 @@ class AirportScene(QGraphicsScene):
             fill_h = frac * bh
             fill.setRect(bx, by + bh - fill_h, bw, fill_h)
 
+    def _update_departure_timers(self, t: float) -> None:
+        """Update countdown text next to each gate's capacity bar."""
+        for gate, text_item in self._departure_timers.items():
+            countdown = _next_departure(gate, t) - t
+            if countdown < 60:
+                text_item.setText(f"{int(countdown)}s")
+                text_item.setBrush(QBrush(QColor('#FF4444')))
+            elif countdown < 300:
+                text_item.setText(f"{int(countdown // 60)}m")
+                text_item.setBrush(QBrush(QColor('#FFD700')))
+            elif countdown < 3600:
+                text_item.setText(f"{int(countdown // 60)}m")
+                text_item.setBrush(QBrush(QColor('#8a8a9a')))
+            else:
+                h = int(countdown // 3600)
+                m = int((countdown % 3600) // 60)
+                text_item.setText(f"{h}h{m:02d}")
+                text_item.setBrush(QBrush(QColor('#8a8a9a')))
+
+
+def _schedule_params(station: str) -> tuple:
+    """Return (first_departure_offset, interval) for the given gate type."""
+    if 'regional' in station.lower():
+        return REGIONAL_FIRST, REGIONAL_INTERVAL
+    return PROVINCIAL_FIRST, PROVINCIAL_INTERVAL
+
+
+def _next_departure(station: str, t: float) -> float:
+    """Return the next departure time after t for this gate type."""
+    first, interval = _schedule_params(station)
+    day_start = (int(t) // DAY) * DAY
+    day_offset = t - day_start
+    if day_offset < first:
+        return day_start + first
+    n = int((day_offset - first) // interval) + 1
+    return day_start + first + n * interval
+
 
 def _prev_departure(station: str, t: float) -> float:
     """Return the most recent departure time at or before t for this gate type."""
-    day = int(t // 86400)
-    day_start = day * 86400
+    first, interval = _schedule_params(station)
+    day_start = (int(t) // DAY) * DAY
     day_offset = t - day_start
-    if 'regional' in station.lower():
-        # Regional: departs at 1800 + n*3600 (hourly from 00:30)
-        if day_offset < 1800:
-            return (day - 1) * 86400 + 1800 + 23 * 3600 if day > 0 else 0
-        n = int((day_offset - 1800) // 3600)
-        return day_start + 1800 + n * 3600
-    else:
-        # Provincial: departs at n*21600 (every 6 hours from 00:00)
-        n = int(day_offset // 21600)
-        return day_start + n * 21600
+    if day_offset < first:
+        prev_day = day_start - DAY
+        return prev_day + first + ((DAY - first) // interval) * interval if day_start > 0 else 0
+    n = int((day_offset - first) // interval)
+    return day_start + first + n * interval
 
 
 # -----------------------------------------------------------------------

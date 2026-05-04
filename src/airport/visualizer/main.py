@@ -13,6 +13,7 @@ from .playback_controls import PlaybackEngine, PlaybackControls
 from .histogram_tab import HistogramTab
 from .stats_panel import StatsEngine, StatsPanel
 from .station_stats import StationStatsEngine
+from .flight_board import FlightSchedule, FlightBoardPanel
 
 
 class MainWindow(QMainWindow):
@@ -42,9 +43,12 @@ class MainWindow(QMainWindow):
         self.scene.set_station_engine(self.station_stats_engine)
         self.stats_engine = StatsEngine(data.stats)
         self.stats_panel = StatsPanel()
+        self.flight_schedule = FlightSchedule()
+        self.flight_board = FlightBoardPanel(self.flight_schedule)
         self.controls = PlaybackControls(self.engine, data.day_boundaries)
 
         playback_layout.addWidget(self.view, stretch=1)
+        playback_layout.addWidget(self.flight_board)
         playback_layout.addWidget(self.stats_panel)
         playback_layout.addWidget(self.controls)
         tabs.addTab(playback_widget, 'Playback')
@@ -76,6 +80,7 @@ class MainWindow(QMainWindow):
         active = self.scene.update_to_time(t)
         self.controls.set_active_count(active)
         self.stats_panel.update_stats(self.stats_engine.compute(t))
+        self.flight_board.update_flights(t)
         # Dismiss popup when playback is running (user hit play)
         if self.engine.playing:
             self.scene.dismiss_popup()

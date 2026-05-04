@@ -208,6 +208,15 @@ def draw_station_rects(scene: AirportScene) -> None:
             scene.addItem(fill)
             scene._capacity_bars[name] = (fill, bar_x, bar_y, bar_w, bar_h)
 
+            # Departure countdown text below the capacity bar
+            timer = QGraphicsSimpleTextItem("")
+            timer.setFont(FONT_LABEL)
+            timer.setBrush(QBrush(TEXT_SECONDARY))
+            timer.setPos(bar_x - 8, bar_y + bar_h + 3)
+            timer.setZValue(3)
+            scene.addItem(timer)
+            scene._departure_timers[name] = timer
+
 
 def draw_legend(scene: AirportScene) -> None:
     """Draw passenger type color legend at the bottom of the scene."""
