@@ -29,7 +29,7 @@ class Simulation:
         """
         self.env = simpy.Environment()
         self.simulation_time = simulation_time
-        self.logger = Logger()
+        self.logger = Logger(self.env)
         self.ctx = SimulationContext(env=self.env, logger=self.logger, simulation_time=simulation_time)
         self.airport = Airport(self.ctx, num_business_counters, num_coach_counters, num_security_screens, num_regional_gates, num_provincial_gates)
         self.interarrival_generator = ExponentialRandomNumberGenerator(interarrival_rate / 3600)  # Poisson process: inter-arrival times are exponentially distributed. Convert passengers/hour to passengers/second.

@@ -36,8 +36,6 @@ class Airport:
         self._next_regional = 0
         self._next_provincial = 0
 
-        self.start_log_saving_process(86400)  # 86400 seconds in a day
-
     # --- Helpers ---
 
     def _find_shortest_queue(self, stations, resources):
@@ -115,24 +113,3 @@ class Airport:
             self._next_provincial += 1
         yield self.env.process(gate.handle_passenger(passenger))
 
-    def save_logs(self, day):
-        """
-        Saves the daily logs for the specified day.
-        """
-        self.logger.save_daily_log(day)
-        self.logger.reset_daily_log()
-
-    def start_log_saving_process(self, interval):
-        """
-        Starts the log-saving process to save logs periodically.
-        """
-        self.env.process(self.save_logs_periodically(interval))
-
-    def save_logs_periodically(self, interval):
-        """
-        A process that saves logs at regular intervals (e.g., daily).
-        """
-        while True:
-            yield self.env.timeout(interval)
-            day = int(self.env.now / interval)
-            self.save_logs(day)

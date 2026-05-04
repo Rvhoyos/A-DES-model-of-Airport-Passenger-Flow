@@ -13,17 +13,20 @@ class Logger:
         'Duration', 'Bags', 'Cost'
     ]
     
-    def __init__(self, log_dir=None):
+    def __init__(self, env, log_dir=None):
         """
         Initializes the logger with a directory to save logs.
+        :param env: SimPy environment (used for periodic log saving).
         :param log_dir:
         """
+        self.env = env
         if log_dir is None:
             log_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.log_dir = log_dir
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-        self.daily_log = pd.DataFrame(self.COLUMNS)
+        self.daily_log = pd.DataFrame(columns=self.COLUMNS)
+        self.env.process(self.save_logs_periodically(86400))
 
     def log_event(self, arrival_time, event, time, details,
                   passenger_id=None, gate_type=None, seat_type=None, station=None, duration=None, num_bags=None, cost=None):
@@ -53,7 +56,17 @@ class Logger:
         Resets the daily log to an empty DataFrame.
         :return:
         """
-        self.daily_log = pd.DataFrame(self.COLUMNS)
+        self.daily_log = pd.DataFrame(columns=self.COLUMNS)
+
+    def save_logs_periodically(self, interval):
+        """
+        A process that saves logs at regular intervals (e.g., daily).
+        """
+        while True:
+            yield self.env.timeout(interval)
+            day = int(self.env.now / interval)
+            self.save_daily_log(day)
+            self.reset_daily_log()
 
     def save_daily_log(self, day):
         """
