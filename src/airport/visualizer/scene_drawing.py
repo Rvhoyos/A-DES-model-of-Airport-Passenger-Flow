@@ -122,17 +122,22 @@ def draw_station_rects(scene: AirportScene) -> None:
         w = STATION_W_SMALL if is_small else STATION_W
         x = center.x() - w / 2
         y = center.y() - STATION_H / 2
+        # For click detection: sub-stations map to parent station name (logs use unsuffixed)
+        station_tag = name[:-2] if is_small else name
 
         # Queue area indicator (toward corridor side of station)
+        # Entrance has no queue - passengers arrive based on Poisson rate
         q_dir = scene._queue_dirs.get(name, 1)
-        q_area_h = 60
-        q_area_y = center.y() - STATION_H / 2 - q_area_h if q_dir > 0 \
-            else center.y() + STATION_H / 2
-        q_rect = QGraphicsRectItem(x + 5, q_area_y, w - 10, q_area_h)
-        q_rect.setBrush(QBrush(QColor(255, 255, 255, 5)))
-        q_rect.setPen(QPen(QColor(255, 255, 255, 12), 0.5, Qt.PenStyle.DotLine))
-        q_rect.setZValue(0)
-        scene.addItem(q_rect)
+        if name != 'Entrance':
+            q_area_h = 60
+            q_area_y = center.y() - STATION_H / 2 - q_area_h if q_dir > 0 \
+                else center.y() + STATION_H / 2
+            q_rect = QGraphicsRectItem(x + 5, q_area_y, w - 10, q_area_h)
+            q_rect.setBrush(QBrush(QColor(255, 255, 255, 5)))
+            q_rect.setPen(QPen(QColor(255, 255, 255, 12), 0.5, Qt.PenStyle.DotLine))
+            q_rect.setZValue(0)
+            q_rect.setData(1, station_tag)
+            scene.addItem(q_rect)
 
         # Main rect (rounded via QPainterPath)
         path = QPainterPath()
@@ -141,6 +146,7 @@ def draw_station_rects(scene: AirportScene) -> None:
         item.setBrush(QBrush(STATION_FILL))
         item.setPen(QPen(QColor(255, 255, 255, 25), 1))
         item.setZValue(1)
+        item.setData(1, station_tag)
         scene.addItem(item)
 
         # Colored accent bar on the left edge
@@ -148,6 +154,7 @@ def draw_station_rects(scene: AirportScene) -> None:
         accent.setBrush(QBrush(border_col))
         accent.setPen(QPen(Qt.PenStyle.NoPen))
         accent.setZValue(2)
+        accent.setData(1, station_tag)
         scene.addItem(accent)
 
         # Label (short name for split security sub-stations)
@@ -158,6 +165,7 @@ def draw_station_rects(scene: AirportScene) -> None:
         br = label.boundingRect()
         label.setPos(center.x() - br.width() / 2 + 3, center.y() - br.height() / 2)
         label.setZValue(3)
+        label.setData(1, station_tag)
         scene.addItem(label)
 
         # Overflow queue zone (opposite side from boarding queue, regional gates only)
@@ -170,6 +178,7 @@ def draw_station_rects(scene: AirportScene) -> None:
             o_rect.setBrush(QBrush(QColor(255, 140, 0, 10)))
             o_rect.setPen(QPen(QColor(255, 140, 0, 40), 0.5, Qt.PenStyle.DotLine))
             o_rect.setZValue(0)
+            o_rect.setData(1, station_tag)
             scene.addItem(o_rect)
             o_label = QGraphicsSimpleTextItem('overflow')
             o_label.setBrush(QBrush(QColor(255, 140, 0, 60)))
@@ -177,6 +186,7 @@ def draw_station_rects(scene: AirportScene) -> None:
             o_br = o_label.boundingRect()
             o_label.setPos(center.x() - o_br.width() / 2 + 3, o_area_y + 2)
             o_label.setZValue(1)
+            o_label.setData(1, station_tag)
             scene.addItem(o_label)
 
         # Capacity bar for gate stations
@@ -188,11 +198,13 @@ def draw_station_rects(scene: AirportScene) -> None:
             bg.setBrush(QBrush(QColor(255, 255, 255, 15)))
             bg.setPen(QPen(QColor(255, 255, 255, 30), 0.5))
             bg.setZValue(1)
+            bg.setData(1, station_tag)
             scene.addItem(bg)
             fill = QGraphicsRectItem(bar_x, bar_y + bar_h, bar_w, 0)
             fill.setBrush(QBrush(border_col))
             fill.setPen(QPen(Qt.PenStyle.NoPen))
             fill.setZValue(2)
+            fill.setData(1, station_tag)
             scene.addItem(fill)
             scene._capacity_bars[name] = (fill, bar_x, bar_y, bar_w, bar_h)
 

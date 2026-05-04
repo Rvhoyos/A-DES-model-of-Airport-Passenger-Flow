@@ -13,6 +13,7 @@ from PyQt6.QtGui import QPen, QBrush, QColor, QPainter, QTransform
 from PyQt6.QtCore import Qt, QPointF, pyqtSignal
 
 from .data_model import SimulationData, PassengerTimeline, PassengerState, FADE_OUT_BUFFER
+from .station_stats import StationStatsEngine, StationMetrics, CategoryMetrics, EntranceMetrics
 from .theme import (
     SCENE_BG, COLOR_ENTRANCE, FONT_LABEL, FONT_SMALL,
     PANEL, HIGHLIGHT, TEXT_PRIMARY, TEXT_SECONDARY,
@@ -115,16 +116,137 @@ class PassengerPopup(QGraphicsRectItem):
 
 
 # -----------------------------------------------------------------------
+# Station info popup
+# -----------------------------------------------------------------------
+
+class StationPopup(QGraphicsRectItem):
+    """Info panel showing per-station and category stats when a station is clicked."""
+
+    PADDING = 10
+    LINE_HEIGHT = 16
+    COL_GAP = 24
+
+    def __init__(self, station: StationMetrics, category: CategoryMetrics,
+                 pos: QPointF, parent: Optional[QGraphicsRectItem] = None):
+        super().__init__(parent)
+        self.setZValue(100)
+
+        left_lines = [
+            station.station_name,
+            f"Served: {station.passengers_served}",
+            f"Avg service: {station.avg_service_time:.0f}s",
+            f"Avg wait: {station.avg_wait_time:.0f}s",
+            f"Utilization: {station.utilization:.0%}" if station.utilization > 0
+            else f"Throughput: {station.throughput:.1f}/hr",
+            f"Max wait: {station.max_wait_time:.0f}s",
+        ]
+
+        cat_label = category.category.replace('_', ' ').title()
+        right_lines = [
+            f"All {cat_label}",
+            f"Served: {category.total_served}",
+            f"Avg service: {category.avg_service_time:.0f}s",
+            f"Avg wait: {category.avg_wait_time:.0f}s",
+            f"Utilization: {category.combined_utilization:.0%}" if category.combined_utilization > 0
+            else f"Avg tput: {category.avg_throughput:.1f}/hr",
+            f"Total tput: {category.throughput:.1f}/hr",
+            f"Stations: {category.station_count}",
+        ]
+
+        # Render left column
+        left_items: List[QGraphicsSimpleTextItem] = []
+        left_max_w = 0.0
+        for i, line in enumerate(left_lines):
+            txt = QGraphicsSimpleTextItem(line, self)
+            txt.setFont(FONT_SMALL)
+            txt.setBrush(QBrush(TEXT_PRIMARY if i == 0 else TEXT_SECONDARY))
+            txt.setPos(self.PADDING, self.PADDING + i * self.LINE_HEIGHT)
+            left_max_w = max(left_max_w, txt.boundingRect().width())
+            left_items.append(txt)
+
+        # Render right column
+        right_x = self.PADDING + left_max_w + self.COL_GAP
+        right_max_w = 0.0
+        for i, line in enumerate(right_lines):
+            txt = QGraphicsSimpleTextItem(line, self)
+            txt.setFont(FONT_SMALL)
+            txt.setBrush(QBrush(TEXT_PRIMARY if i == 0 else TEXT_SECONDARY))
+            txt.setPos(right_x, self.PADDING + i * self.LINE_HEIGHT)
+            right_max_w = max(right_max_w, txt.boundingRect().width())
+
+        # Size background
+        w = right_x + right_max_w + self.PADDING
+        h = self.PADDING * 2 + max(len(left_lines), len(right_lines)) * self.LINE_HEIGHT
+        self.setRect(0, 0, w, h)
+
+        bg = QColor(PANEL)
+        bg.setAlpha(230)
+        self.setBrush(QBrush(bg))
+        self.setPen(QPen(HIGHLIGHT, 1))
+
+        self.setPos(pos.x() + 12, pos.y() - h - 4)
+
+
+# -----------------------------------------------------------------------
+# Entrance info popup
+# -----------------------------------------------------------------------
+
+class EntrancePopup(QGraphicsRectItem):
+    """Info panel showing arrival stats when the Entrance is clicked."""
+
+    PADDING = 10
+    LINE_HEIGHT = 16
+
+    def __init__(self, metrics: EntranceMetrics, pos: QPointF,
+                 parent: Optional[QGraphicsRectItem] = None):
+        super().__init__(parent)
+        self.setZValue(100)
+
+        total = metrics.total_arrived or 1  # avoid div by zero for percentages
+        lines = [
+            "Entrance",
+            f"Arrived: {metrics.total_arrived}",
+            f"Rate: {metrics.arrival_rate:.1f}/hr",
+            f"Regional: {metrics.regional_count} ({metrics.regional_count/total:.0%})",
+            f"Provincial: {metrics.provincial_count} ({metrics.provincial_count/total:.0%})",
+            f"Coach: {metrics.coach_count} | Business: {metrics.business_count}",
+            f"Avg bags: {metrics.avg_bags:.1f}",
+        ]
+
+        max_width = 0.0
+        for i, line in enumerate(lines):
+            txt = QGraphicsSimpleTextItem(line, self)
+            txt.setFont(FONT_SMALL)
+            txt.setBrush(QBrush(TEXT_PRIMARY if i == 0 else TEXT_SECONDARY))
+            txt.setPos(self.PADDING, self.PADDING + i * self.LINE_HEIGHT)
+            max_width = max(max_width, txt.boundingRect().width())
+
+        w = max_width + self.PADDING * 2
+        h = self.PADDING * 2 + len(lines) * self.LINE_HEIGHT
+        self.setRect(0, 0, w, h)
+
+        bg = QColor(PANEL)
+        bg.setAlpha(230)
+        self.setBrush(QBrush(bg))
+        self.setPen(QPen(HIGHLIGHT, 1))
+
+        self.setPos(pos.x() + 12, pos.y() - h - 4)
+
+
+# -----------------------------------------------------------------------
 # Scene
 # -----------------------------------------------------------------------
 
 class AirportScene(QGraphicsScene):
 
     passenger_clicked = pyqtSignal(int)
+    station_clicked = pyqtSignal(str)
 
     def __init__(self, data: SimulationData, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.data = data
+        self._station_engine: Optional[StationStatsEngine] = None
+        self._current_time: float = 0.0
 
         self.setSceneRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT)
         self.setBackgroundBrush(QBrush(SCENE_BG))
@@ -295,8 +417,8 @@ class AirportScene(QGraphicsScene):
     def mousePressEvent(self, event) -> None:
         item = self.itemAt(event.scenePos(), QTransform())
 
-        # Check if the clicked item is a passenger dot
         if item is not None:
+            # Check passenger dot (data key 0 = passenger ID)
             pid = item.data(0)
             if pid is not None and pid in self.data.passengers:
                 self.dismiss_popup()
@@ -306,7 +428,25 @@ class AirportScene(QGraphicsScene):
                 self.passenger_clicked.emit(pid)
                 return
 
-        # Clicked empty space or non-dot item: dismiss popup
+            # Check station rect (data key 1 = station name)
+            station_name = item.data(1)
+            if station_name is not None and self._station_engine is not None:
+                self.dismiss_popup()
+                if station_name == 'Entrance':
+                    metrics = self._station_engine.compute_entrance(self._current_time)
+                    self._popup = EntrancePopup(metrics, event.scenePos())
+                else:
+                    station_metrics = self._station_engine.compute_station(
+                        station_name, self._current_time)
+                    category_metrics = self._station_engine.compute_category(
+                        station_metrics.category, self._current_time)
+                    self._popup = StationPopup(
+                        station_metrics, category_metrics, event.scenePos())
+                self.addItem(self._popup)
+                self.station_clicked.emit(station_name)
+                return
+
+        # Clicked empty space: dismiss popup
         self.dismiss_popup()
         super().mousePressEvent(event)
 
@@ -364,9 +504,14 @@ class AirportScene(QGraphicsScene):
     # Main update (called every frame)
     # ===================================================================
 
+    def set_station_engine(self, engine: StationStatsEngine) -> None:
+        """Set the station stats engine for click-to-inspect popups."""
+        self._station_engine = engine
+
     def update_to_time(self, t: float) -> int:
         """Move all passenger dots to their positions at time t.
         Returns the number of active passengers."""
+        self._current_time = t
         active = self.data.get_active_passengers(t)
 
         # --- Pass 1: collect stationary passengers per station for FIFO ordering ---

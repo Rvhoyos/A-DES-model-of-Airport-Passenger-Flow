@@ -30,13 +30,16 @@ class BusinessClassCounter(CheckinCounter):
                   passenger (Passenger): The passenger to check in.
               """
         with self.counter.request() as req:
+            queue_entry_time = self.env.now
             self.logger.log_event(passenger.arrival_time, 'Check-in Queue', self.env.now,
                                   'Entered business check-in queue',
                                   passenger_id=passenger.id, station=self.station_name)
             yield req
+            wait_time = self.env.now - queue_entry_time
             self.logger.log_event(passenger.arrival_time, 'Check-in Start', self.env.now,
                                   'Started business check-in service',
-                                  passenger_id=passenger.id, station=self.station_name)
+                                  passenger_id=passenger.id, station=self.station_name,
+                                  duration=wait_time)
             boarding_pass_time = self.print_boarding_pass()
             bag_check_time = self.check_bags(passenger)
             problem_delay_time = self.handle_problems_and_delays()

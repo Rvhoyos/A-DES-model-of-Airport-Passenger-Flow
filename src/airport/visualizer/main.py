@@ -12,6 +12,7 @@ from .airport_scene import AirportScene, AirportView
 from .playback_controls import PlaybackEngine, PlaybackControls
 from .histogram_tab import HistogramTab
 from .stats_panel import StatsEngine, StatsPanel
+from .station_stats import StationStatsEngine
 
 
 class MainWindow(QMainWindow):
@@ -37,6 +38,8 @@ class MainWindow(QMainWindow):
 
         self.scene = AirportScene(data)
         self.view = AirportView(self.scene)
+        self.station_stats_engine = StationStatsEngine(data)
+        self.scene.set_station_engine(self.station_stats_engine)
         self.stats_engine = StatsEngine(data.stats)
         self.stats_panel = StatsPanel()
         self.controls = PlaybackControls(self.engine, data.day_boundaries)
@@ -64,6 +67,7 @@ class MainWindow(QMainWindow):
         # -- Wire signals --
         self.engine.time_changed.connect(self._on_time)
         self.scene.passenger_clicked.connect(self._on_passenger_clicked)
+        self.scene.station_clicked.connect(self._on_station_clicked)
 
         # Initial render at start time
         self._on_time(data.min_time)
@@ -77,6 +81,10 @@ class MainWindow(QMainWindow):
             self.scene.dismiss_popup()
 
     def _on_passenger_clicked(self, pid: int) -> None:
+        self.engine.pause()
+        self.controls.btn_play.setText('Play')
+
+    def _on_station_clicked(self, name: str) -> None:
         self.engine.pause()
         self.controls.btn_play.setText('Play')
 

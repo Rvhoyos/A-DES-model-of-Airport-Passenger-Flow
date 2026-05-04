@@ -67,12 +67,9 @@ class RegionalGate(Gate):
         else:
             print(f"Flight at {current_flight.departure_time} is full. A passenger is queued for next flight.")
             passenger.queue_time = self.env.now
-            yield self.queue.put(passenger)  # Wait until the passenger is processed from the queue
-            waiting_time = start_time - passenger.queue_time  # Calculate waiting time
-            print(
-                f"Passenger {passenger.arrival_time} was queued and waited {waiting_time} seconds,before boarding.")
+            yield self.queue.put(passenger)
             self.logger.log_event(passenger.arrival_time, 'Queue', self.env.now,
-                                  f'Passenger queued for next regional flight. Waiting Time: {waiting_time} seconds',
+                                  'Queued for next regional flight',
                                   passenger_id=passenger.id, station=self.gate_name)
 
     def process_queue(self):
@@ -88,11 +85,14 @@ class RegionalGate(Gate):
             current_flight = self.find_current_flight(current_time)
             if current_flight and current_flight.available_seats['coach'] > 0:
                 passenger = yield self.queue.get()
+                waiting_time = self.env.now - passenger.queue_time
                 current_flight.board_passenger(passenger)
                 print(
-                    f"A queued passenger boards the regional flight departing {current_flight.departure_time}, at time {current_time}.")
+                    f"A queued passenger boards the regional flight departing {current_flight.departure_time}, "
+                    f"at time {current_time}. Wait: {waiting_time:.0f}s")
                 self.logger.log_event(passenger.arrival_time, 'Boarding from Queue', self.env.now,
-                                      'Boarded regional flight from queue',
-                                      passenger_id=passenger.id, station=self.gate_name)
+                                      f'Boarded from queue. Wait: {waiting_time:.0f}s',
+                                      passenger_id=passenger.id, station=self.gate_name,
+                                      duration=waiting_time)
             else:
                 yield self.env.timeout(1)  # Wait before checking the queue again

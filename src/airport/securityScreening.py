@@ -41,13 +41,16 @@ class SecurityScreening:
         machine = self.business_machine if passenger.seat_type == 'business' else self.coach_machines
 
         with machine.request() as req:
+            queue_entry_time = self.env.now
             self.logger.log_event(passenger.arrival_time, 'Security Queue', self.env.now,
                                   'Entered security screening queue',
                                   passenger_id=passenger.id, station=self.station_name)
             yield req
+            wait_time = self.env.now - queue_entry_time
             self.logger.log_event(passenger.arrival_time, 'Security Start', self.env.now,
                                   'Started security screening',
-                                  passenger_id=passenger.id, station=self.station_name)
+                                  passenger_id=passenger.id, station=self.station_name,
+                                  duration=wait_time)
             screening_time = np.random.exponential(3 * 60)  # Screening time in seconds
             start_time = self.env.now
             yield self.env.timeout(screening_time)
