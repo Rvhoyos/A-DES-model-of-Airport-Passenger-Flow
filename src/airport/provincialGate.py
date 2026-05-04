@@ -1,3 +1,5 @@
+import simpy
+
 from .flight import Flight
 from .gate import Gate
 
@@ -59,16 +61,13 @@ class ProvincialGate(Gate):
 
         else:
             print(f"No seats available at time {current_time}.")
-            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'No seats available',
-                                  passenger_id=passenger.id, station=self.gate_name)
             if passenger.arrival_time <= current_flight.departure_time - 90 * 60:
                 print(f"A passenger receives a refund at time {current_time} and has left the airport.")
                 self.logger.log_event(passenger.arrival_time, 'Refund', self.env.now,
                                       'Received refund and left airport',
                                       passenger_id=passenger.id, station=self.gate_name)
-                yield self.env.timeout(0)  # Ensuring the method yields an event
             else:
                 print(f"A passenger was late to the airport at{current_flight.departure_time} and left the airport.")
                 self.logger.log_event(passenger.arrival_time, 'Late', self.env.now, 'Late to airport and left',
                                       passenger_id=passenger.id, station=self.gate_name)
-                yield self.env.timeout(0)  # Ensuring the method yields an event even if no other action is taken
+        yield simpy.Event(self.env).succeed()

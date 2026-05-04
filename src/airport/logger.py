@@ -25,7 +25,7 @@ class Logger:
         self.log_dir = log_dir
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-        self.daily_log = pd.DataFrame(columns=self.COLUMNS)
+        self.daily_log = []
         self.env.process(self.save_logs_periodically(86400))
 
     def log_event(self, arrival_time, event, time, details,
@@ -44,19 +44,18 @@ class Logger:
         :return:
         """
         print(f"Logging event: {event}, Time: {time}, Details: {details}")
-        new_record = pd.DataFrame({
-            'Arrival Time': [arrival_time], 'Event': [event], 'Time': [time], 'Details': [details],
-            'Passenger ID': [passenger_id], 'Gate Type': [gate_type], 'Seat Type': [seat_type],
-            'Station': [station], 'Duration': [duration], 'Bags': [num_bags], 'Cost': [cost]
+        self.daily_log.append({
+            'Arrival Time': arrival_time, 'Event': event, 'Time': time, 'Details': details,
+            'Passenger ID': passenger_id, 'Gate Type': gate_type, 'Seat Type': seat_type,
+            'Station': station, 'Duration': duration, 'Bags': num_bags, 'Cost': cost
         })
-        self.daily_log = pd.concat([self.daily_log, new_record], ignore_index=True)
 
     def reset_daily_log(self):
         """
-        Resets the daily log to an empty DataFrame.
+        Resets the daily log to an empty list.
         :return:
         """
-        self.daily_log = pd.DataFrame(columns=self.COLUMNS)
+        self.daily_log = []
 
     def save_logs_periodically(self, interval):
         """
@@ -75,4 +74,4 @@ class Logger:
         :return:
         """
         filepath = os.path.join(self.log_dir, f'day_{day}_log.csv')
-        self.daily_log.to_csv(filepath, index=False)
+        pd.DataFrame(self.daily_log, columns=self.COLUMNS).to_csv(filepath, index=False)
