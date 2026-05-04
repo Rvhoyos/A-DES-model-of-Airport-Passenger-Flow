@@ -111,14 +111,19 @@ def replicate(runs, simulation):
 
 
 # Main function to start the simulation
+def prompt(label, default):
+    value = input(f"{label} [leave blank for {default}]: ").strip()
+    return type(default)(value) if value else default
+
+
 def main():
-    simulation_days = int(input("Enter the number of days to run the simulation: "))
-    num_business_counters = int(input("Enter the number of business class counters: "))
-    num_coach_counters = int(input("Enter the number of coach counters: "))
-    num_security_screens = int(input("Enter the number of security screening stations: "))
-    num_regional_gates = int(input("Enter the number of regional gates: "))
-    num_provincial_gates = int(input("Enter the number of provincial gates: "))
-    interarrival_rate = float(input("Enter the passenger arrival rate (passengers per hour): "))
+    simulation_days = prompt("Enter the number of days to run the simulation", 7)
+    num_business_counters = prompt("Enter the number of business class counters", 1)
+    num_coach_counters = prompt("Enter the number of coach counters", 2)
+    num_security_screens = prompt("Enter the number of security screening stations", 2)
+    num_regional_gates = prompt("Enter the number of regional gates", 2)
+    num_provincial_gates = prompt("Enter the number of provincial gates", 1)
+    interarrival_rate = prompt("Enter the passenger arrival rate (passengers per hour)", 40.0)
 
     simulation_time = 86400 * simulation_days + 3600  # extra hour to ensure full day inclusion
 
