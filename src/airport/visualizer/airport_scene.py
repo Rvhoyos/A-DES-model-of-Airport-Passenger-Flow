@@ -376,9 +376,7 @@ class AirportScene(QGraphicsScene):
 
         for pid, state in active.items():
             tl = self.data.passengers[pid]
-            # Queue passengers always go to overflow position (they interpolate
-            # with a mid-range fraction since the event has no duration, but
-            # both stations are the same gate so the fraction is meaningless)
+            # Queue events have no duration, so fraction is mid-range - force to overflow
             if state.event == 'Queue':
                 at_station = self._resolve_station(state.current_station or 'Entrance', tl.seat_type)
                 overflow_pax[at_station].append((pid, state.station_arrival_time))
@@ -435,7 +433,7 @@ class AirportScene(QGraphicsScene):
             elif state.event == 'Late':
                 dot.setBrush(QBrush(COLOR_LATE))
             elif state.event == 'Queue':
-                c = passenger_color(tl.gate_type, tl.seat_type)
+                c = QColor(passenger_color(tl.gate_type, tl.seat_type))
                 c.setAlpha(120)
                 dot.setBrush(QBrush(c))
             else:
