@@ -44,6 +44,16 @@ class Airport:
         self.security_screening = [SecurityScreening(ctx) for _ in range(num_security_screens)]
         self.regional_gates = [RegionalGate(ctx) for _ in range(num_regional_gates)]
         self.provincial_gates = [ProvincialGate(ctx) for _ in range(num_provincial_gates)]
+
+        # Round-robin counters for gate assignment.
+        # Current policy: simple alternation (Gate 1, Gate 2, Gate 1, ...).
+        # TODO: May need a smarter policy later (e.g. shortest-queue or
+        # next-available-flight) once arrival rates are high enough to
+        # cause uneven load. Round-robin is fine when gates share the
+        # same flight schedule and capacity.
+        self._next_regional = 0
+        self._next_provincial = 0
+
         self.start_log_saving_process(86400)  # 86400 seconds in a day / log interval
 
     def process_passenger(self, passenger):
@@ -90,17 +100,14 @@ class Airport:
         print(f"Passenger {passenger.arrival_time} has checked in")
 
         # --- STAGE 3: GATE ---
-        # BUG: the for loop yields a process for EVERY gate of this type.
-        # yield self.env.process() is blocking -it waits for each gate's handle_passenger()
-        # to finish, then moves to the next gate. So one passenger sequentially visits
-        # every gate and potentially boards multiple flights.
-        # A passenger should go to ONE gate (e.g., the one with the next available flight).
+        # Route passenger to ONE gate via round-robin (see __init__ comment).
         if passenger.gate_type == 'commuter':
-            for gate in self.regional_gates:
-                yield self.env.process(gate.handle_passenger(passenger))
+            gate = self.regional_gates[self._next_regional % len(self.regional_gates)]
+            self._next_regional += 1
         else:
-            for gate in self.provincial_gates:
-                yield self.env.process(gate.handle_passenger(passenger))
+            gate = self.provincial_gates[self._next_provincial % len(self.provincial_gates)]
+            self._next_provincial += 1
+        yield self.env.process(gate.handle_passenger(passenger))
 
     def save_logs(self, day):
         """

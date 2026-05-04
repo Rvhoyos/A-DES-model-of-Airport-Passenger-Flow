@@ -27,6 +27,8 @@ class RegionalGate(Gate):
         self.queue = simpy.Store(ctx.env)  # Simpy store to hold passengers in queue
         RegionalGate.number_of_regional_gates += 1
         self.gate_name = f"Regional Gate {RegionalGate.number_of_regional_gates}"
+        self.logger.log_event(0, 'Gate Ready', 0, f'{self.gate_name} initialized',
+                              station=self.gate_name)
 
     def set_schedule(self, simulation_time):
         """

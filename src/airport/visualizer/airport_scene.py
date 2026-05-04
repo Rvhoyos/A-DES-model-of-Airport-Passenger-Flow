@@ -376,15 +376,18 @@ class AirportScene(QGraphicsScene):
 
         for pid, state in active.items():
             tl = self.data.passengers[pid]
-            if state.fraction <= 0.01 or state.fraction >= 0.99:
+            # Queue passengers always go to overflow position (they interpolate
+            # with a mid-range fraction since the event has no duration, but
+            # both stations are the same gate so the fraction is meaningless)
+            if state.event == 'Queue':
+                at_station = self._resolve_station(state.current_station or 'Entrance', tl.seat_type)
+                overflow_pax[at_station].append((pid, state.station_arrival_time))
+            elif state.fraction <= 0.01 or state.fraction >= 0.99:
                 at_station = state.current_station if state.fraction <= 0.01 else state.next_station
                 if at_station is None:
                     at_station = 'Entrance'
                 at_station = self._resolve_station(at_station, tl.seat_type)
-                if state.event == 'Queue':
-                    overflow_pax[at_station].append((pid, state.station_arrival_time))
-                else:
-                    station_pax[at_station].append((pid, state.station_arrival_time))
+                station_pax[at_station].append((pid, state.station_arrival_time))
             else:
                 transit_pax[pid] = state
 

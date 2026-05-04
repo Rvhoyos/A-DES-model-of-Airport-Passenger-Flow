@@ -160,6 +160,25 @@ def draw_station_rects(scene: AirportScene) -> None:
         label.setZValue(3)
         scene.addItem(label)
 
+        # Overflow queue zone (opposite side from boarding queue, regional gates only)
+        if 'regional' in name.lower():
+            o_area_h = 60
+            # Opposite side from the boarding queue area
+            o_area_y = center.y() + STATION_H / 2 if q_dir > 0 \
+                else center.y() - STATION_H / 2 - o_area_h
+            o_rect = QGraphicsRectItem(x + 5, o_area_y, w - 10, o_area_h)
+            o_rect.setBrush(QBrush(QColor(255, 140, 0, 10)))
+            o_rect.setPen(QPen(QColor(255, 140, 0, 40), 0.5, Qt.PenStyle.DotLine))
+            o_rect.setZValue(0)
+            scene.addItem(o_rect)
+            o_label = QGraphicsSimpleTextItem('overflow')
+            o_label.setBrush(QBrush(QColor(255, 140, 0, 60)))
+            o_label.setFont(FONT_LABEL)
+            o_br = o_label.boundingRect()
+            o_label.setPos(center.x() - o_br.width() / 2 + 3, o_area_y + 2)
+            o_label.setZValue(1)
+            scene.addItem(o_label)
+
         # Capacity bar for gate stations
         if 'gate' in name.lower():
             bar_w, bar_h = 6, STATION_H

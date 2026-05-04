@@ -23,6 +23,8 @@ class ProvincialGate(Gate):
         self.flight_schedule = self.set_schedule(ctx.simulation_time)
         ProvincialGate.number_of_provincial_gates += 1
         self.gate_name = f"Provincial Gate {ProvincialGate.number_of_provincial_gates}"
+        self.logger.log_event(0, 'Gate Ready', 0, f'{self.gate_name} initialized',
+                              station=self.gate_name)
 
     def set_schedule(self, simulation_time):
         """
