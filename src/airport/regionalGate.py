@@ -57,7 +57,7 @@ class RegionalGate(Gate):
 
         if current_flight and current_flight.available_seats['coach'] > 0:
             current_flight.board_passenger(passenger)
-            service_time = self.env.now - start_time  # Calculate total service time since arrival to boarding
+            service_time = self.env.now - start_time  # Calculate total service time since arrival to boarding, always returns 0 since boarding is instant.
             print(
                 f"A passenger boards the regional flight departing {current_flight.departure_time}, at time {start_time}. Service Time: {service_time} seconds")
             self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now,

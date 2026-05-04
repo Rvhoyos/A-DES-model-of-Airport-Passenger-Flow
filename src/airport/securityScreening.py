@@ -27,8 +27,8 @@ class SecurityScreening:
         SecurityScreening.number_of_stations += 1
         self.station_name = f"Security Station {SecurityScreening.number_of_stations}"
         # Separate resources for business and coach passengers
-        self.business_machine = simpy.Resource(ctx.env, capacity=1)
-        self.coach_machines = simpy.Resource(ctx.env, capacity=2)
+        self.provincial_machine = simpy.Resource(ctx.env, capacity=1)
+        self.regional_machine = simpy.Resource(ctx.env, capacity=2)
 
     def screen_passenger(self, passenger):
         """
@@ -37,8 +37,8 @@ class SecurityScreening:
              Args:
                  passenger (Passenger): The passenger undergoing security screening.
              """
-        # Choose the machine based on passenger seat type
-        machine = self.business_machine if passenger.seat_type == 'business' else self.coach_machines
+        # Choose the machine based on passenger gate type (region) (resource)
+        machine = self.provincial_machine if passenger.gate_type == 'provincial' else self.regional_machine
 
         with machine.request() as req:
             queue_entry_time = self.env.now

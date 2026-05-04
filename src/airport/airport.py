@@ -95,13 +95,13 @@ class Airport:
         # Each SecurityScreening station has two simpy.Resources:
         #   .business_machine (capacity=1) and .coach_machines (capacity=2).
         # Pick the station where the relevant machine has the shortest queue.
-        if passenger.seat_type == 'business':
-            machines = [s.business_machine for s in self.security_screening]
+        if passenger.gate_type == 'commuter':
+            machines = [s.regional_machine for s in self.security_screening]
         else:
-            machines = [s.coach_machines for s in self.security_screening]
+            machines = [s.provincial_machine for s in self.security_screening]
         chosen_screening = self._find_shortest_queue(self.security_screening, machines)
         yield self.env.process(chosen_screening.screen_passenger(passenger))
-        print(f"Passenger {passenger.arrival_time} has checked in")
+        print(f"Passenger {passenger.arrival_time} has cleared security screening")
 
         # --- STAGE 3: GATE ---
         # Route passenger to one gate via round-robin alternation.
