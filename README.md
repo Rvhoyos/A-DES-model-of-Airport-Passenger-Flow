@@ -14,8 +14,8 @@ Specific operational constraints that make this interesting:
 - **Regional flights:** coach only, 40 seats, depart hourly starting at 00:30. If a flight is full, the passenger queues for the next one (no one is turned away).
 - **Provincial flights:** 140 coach + 40 business seats, depart every 6 hours. If a flight is full, business passengers who arrived early (>90 min before departure) get a refund. Late arrivals are simply turned away.
 - **Check-in:** business and coach passengers use separate counters. Service time includes boarding pass printing, bag check, and random delays.
-- **Security:** passengers are screened by flight region (provincial vs regional), not ticket class. Provincial screening has 1 machine, regional has 2.
-- **Single arrival process:** all passengers arrive via one Poisson process (exponential inter-arrival times), then are randomly classified as commuter or provincial.
+- **Security:** passengers are routed to provincial or regional screening based on their flight type.
+- **Single arrival process:** all passengers arrive via one Poisson process (exponential inter-arrival times), then are randomly classified as regional or provincial.
 
 ## Simulation Study Goals
 
@@ -85,6 +85,20 @@ These values are baked into the simulation and not exposed as user-configurable 
 |---|---|---|
 | Regional | 00:30 | Every hour |
 | Provincial | 00:00 | Every 6 hours |
+
+## Architecture Diagrams
+
+### Class Diagram
+
+Full class hierarchy, SimPy Resource/Store ownership, composition and dependencies. ([mermaid source](class_diagram.md))
+
+![Class Diagram](class_diagram.png)
+
+### Sequence Diagram
+
+Passenger lifecycle through the pipeline: check-in (Resource), security (Resource), gate (Store for regional overflow, Event.succeed() for provincial). ([mermaid source](sequence_diagram.md))
+
+![Sequence Diagram](sequence_diagram.png)
 
 ## Dependencies
 
