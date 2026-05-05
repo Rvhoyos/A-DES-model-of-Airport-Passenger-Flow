@@ -29,7 +29,8 @@ COLOR_LATE = QColor('#FF4444')                # red
 
 # -- Station border colors -----------------------------------------------
 COLOR_ENTRANCE = QColor('#888888')             # gray
-COLOR_CHECKIN = QColor('#ffffff')              # white
+COLOR_CHECKIN_COACH = QColor('#ffffff')        # white
+COLOR_CHECKIN_BIZ = QColor('#FFD700')          # gold
 COLOR_SECURITY = QColor('#F44336')             # red
 COLOR_REGIONAL_GATE = QColor('#4CAF50')        # green
 COLOR_PROVINCIAL_GATE = QColor('#2196F3')      # blue
@@ -74,8 +75,10 @@ def station_border_color(station_name: str) -> QColor:
         return COLOR_REGIONAL_GATE
     if 'provincial' in name:
         return COLOR_PROVINCIAL_GATE
+    if 'business counter' in name or 'business check' in name:
+        return COLOR_CHECKIN_BIZ
     if 'counter' in name or 'check' in name:
-        return COLOR_CHECKIN
+        return COLOR_CHECKIN_COACH
     return COLOR_ENTRANCE
 
 

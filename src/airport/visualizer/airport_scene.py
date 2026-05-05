@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QGraphicsRectItem, QGraphicsSimpleTextItem, QWidget,
 )
 from PyQt6.QtGui import QPen, QBrush, QColor, QPainter, QTransform
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal
+from PyQt6.QtCore import Qt, QPointF, QRectF, pyqtSignal
 
 from .data_model import SimulationData, PassengerTimeline, PassengerState, FADE_OUT_BUFFER
 from .station_stats import StationStatsEngine, StationMetrics, CategoryMetrics, EntranceMetrics
@@ -251,7 +251,6 @@ class AirportScene(QGraphicsScene):
         self._station_engine: Optional[StationStatsEngine] = None
         self._current_time: float = 0.0
 
-        self.setSceneRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT)
         self.setBackgroundBrush(QBrush(SCENE_BG))
 
         # station_name -> QPointF center position
@@ -270,6 +269,7 @@ class AirportScene(QGraphicsScene):
         self._departure_timers: Dict[str, QGraphicsSimpleTextItem] = {}
 
         self._layout_stations()
+        self.setSceneRect(self._compute_scene_rect())
         draw_zones(self)
         draw_corridor(self)
         draw_station_rects(self)
@@ -309,6 +309,25 @@ class AirportScene(QGraphicsScene):
         provincial = cats.get('provincial_gate', [])
         self._place_fan(regional, COL_GATES, above=True)
         self._place_fan(provincial, COL_GATES, above=False)
+
+    def _compute_scene_rect(self) -> QRectF:
+        """Compute scene rect from station positions so all content is visible."""
+        if not self.station_positions:
+            return QRectF(0, 0, SCENE_WIDTH, SCENE_HEIGHT)
+
+        xs = [p.x() for p in self.station_positions.values()]
+        ys = [p.y() for p in self.station_positions.values()]
+        pad = 120
+        min_x = min(xs) - pad
+        max_x = max(xs) + pad
+        min_y = min(ys) - pad
+        max_y = max(ys) + pad
+        w = max(max_x - min_x, SCENE_WIDTH)
+        h = max(max_y - min_y, SCENE_HEIGHT)
+        # Center the rect around the computed bounds
+        cx = (min_x + max_x) / 2
+        cy = (min_y + max_y) / 2
+        return QRectF(cx - w / 2, cy - h / 2, w, h)
 
     def _place_alternating(self, names: list, x: float) -> None:
         """Place stations alternating above/below the corridor.
@@ -678,17 +697,68 @@ def _prev_departure(station: str, t: float) -> float:
 # -----------------------------------------------------------------------
 
 class AirportView(QGraphicsView):
-    """QGraphicsView wrapper with antialiasing and zoom-to-fit."""
+    """QGraphicsView with zoom (scroll wheel) and pan (middle-click or Ctrl+left drag)."""
+
+    ZOOM_FACTOR = 1.15
 
     def __init__(self, scene: AirportScene, parent: Optional[QWidget] = None):
         super().__init__(scene, parent)
         self.setRenderHints(
             QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform
         )
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setStyleSheet("border: none; background: transparent;")
+        self._zoom_level = 0
+        self._panning = False
+        self._pan_start = QPointF()
+
+    def wheelEvent(self, event) -> None:
+        if event.angleDelta().y() > 0:
+            self.scale(self.ZOOM_FACTOR, self.ZOOM_FACTOR)
+            self._zoom_level += 1
+        else:
+            self.scale(1 / self.ZOOM_FACTOR, 1 / self.ZOOM_FACTOR)
+            self._zoom_level -= 1
+
+    def mousePressEvent(self, event) -> None:
+        if (event.button() == Qt.MouseButton.MiddleButton or
+                (event.button() == Qt.MouseButton.LeftButton and
+                 event.modifiers() & Qt.KeyboardModifier.ControlModifier)):
+            self._panning = True
+            self._pan_start = event.position()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._panning:
+            delta = event.position() - self._pan_start
+            self._pan_start = event.position()
+            self.horizontalScrollBar().setValue(
+                self.horizontalScrollBar().value() - int(delta.x()))
+            self.verticalScrollBar().setValue(
+                self.verticalScrollBar().value() - int(delta.y()))
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if self._panning:
+            self._panning = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
+        if self._zoom_level == 0:
+            self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        """Double-click to reset zoom to fit-all."""
+        self._zoom_level = 0
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)

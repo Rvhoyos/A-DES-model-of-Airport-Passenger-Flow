@@ -116,14 +116,18 @@ class HistogramTab(QScrollArea):
         station_counts = df['Station'].dropna().value_counts()
         # Filter out flight departures
         station_counts = station_counts[~station_counts.index.str.contains('Flight', case=False)]
-        fig6 = Figure(figsize=(10, 3.5), dpi=100)
+        n_stations = max(len(station_counts), 1)
+        fig6_h = max(3.5, n_stations * 0.4 + 1.5)
+        fig6 = Figure(figsize=(10, fig6_h), dpi=100)
         ax6 = fig6.add_subplot(111)
         if len(station_counts) > 0:
             colors = [self._station_chart_color(s) for s in station_counts.index]
             ax6.barh(station_counts.index, station_counts.values, color=colors, edgecolor=MPL_HIST_EDGE)
             ax6.invert_yaxis()
         _style_ax(ax6, 'Events per Station', 'Event Count', '')
-        self.layout_.addWidget(_make_canvas(fig6))
+        canvas6 = _make_canvas(fig6)
+        canvas6.setMinimumHeight(max(300, int(fig6_h * 100)))
+        self.layout_.addWidget(canvas6)
 
         # 7. Passenger type breakdown
         df_arrivals = df[df['Event'] == 'Arrival']
@@ -157,6 +161,8 @@ class HistogramTab(QScrollArea):
             return '#4CAF50'
         if 'provincial' in s:
             return '#2196F3'
+        if 'business counter' in s or 'business check' in s:
+            return '#FFD700'
         if 'counter' in s or 'check' in s:
             return '#ffffff'
         return '#888888'

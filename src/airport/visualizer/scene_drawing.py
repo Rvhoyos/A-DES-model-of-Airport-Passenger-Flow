@@ -63,11 +63,12 @@ def draw_zones(scene: AirportScene) -> None:
     if cats.get('regional_gate') or cats.get('provincial_gate'):
         zones.append(('GATES', COL_GATES, QColor(33, 150, 243, 14)))
 
+    sr = scene.sceneRect()
     for label, cx, color in zones:
         x = cx - STATION_W / 2 - ZONE_PAD_X
         w = STATION_W + ZONE_PAD_X * 2
-        y = ZONE_PAD_Y
-        h = SCENE_HEIGHT - ZONE_PAD_Y * 2
+        y = sr.top() + ZONE_PAD_Y
+        h = sr.height() - ZONE_PAD_Y * 2
 
         rect = QGraphicsRectItem(x, y, w, h)
         rect.setBrush(QBrush(color))
@@ -221,7 +222,7 @@ def draw_station_rects(scene: AirportScene) -> None:
 def draw_legend(scene: AirportScene) -> None:
     """Draw passenger type color legend at the bottom of the scene."""
     x0 = 20
-    y0 = SCENE_HEIGHT - 50
+    y0 = scene.sceneRect().bottom() - 50
     entries = [
         ('Commuter', QColor('#4CAF50')),
         ('Provincial Coach', QColor('#2196F3')),
