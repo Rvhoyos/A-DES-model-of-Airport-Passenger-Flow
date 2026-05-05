@@ -55,7 +55,7 @@ class SecurityScreening:
             start_time = self.env.now
             yield self.env.timeout(screening_time)
             end_time = self.env.now
-            print(f"Passenger {passenger.arrival_time} completed screening at {end_time}.")
+            print(f"Passenger {passenger.id} completed screening at {end_time}.")
             self.logger.log_event(
                 passenger.arrival_time,
                 'Security Screening',

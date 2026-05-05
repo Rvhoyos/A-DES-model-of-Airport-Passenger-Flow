@@ -44,7 +44,7 @@ class BusinessClassCounter(CheckinCounter):
             bag_check_time = self.check_bags(passenger)
             problem_delay_time = self.handle_problems_and_delays()
             total_time = boarding_pass_time + bag_check_time + problem_delay_time
-            print(f"Business passenger {passenger.arrival_time} is at the counter.")
+            print(f"Business passenger {passenger.id} is at the counter.")
             yield self.env.timeout(total_time)  # Use SimPy's timeout for service time
             self.logger.log_event(passenger.arrival_time, 'Check-in', self.env.now, f'B. service time:{total_time}',
                                   passenger_id=passenger.id, station=self.station_name,

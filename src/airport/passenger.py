@@ -53,4 +53,4 @@ class Passenger:
         String representation of the passenger.
         :return:
         """
-        return f"Passenger({self.arrival_time}, {self.num_bags}, {self.gate_type}, {self.seat_type})"
+        return f"Passenger({self.id}, {self.num_bags}, {self.gate_type}, {self.seat_type})"

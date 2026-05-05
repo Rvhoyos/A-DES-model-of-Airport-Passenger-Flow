@@ -182,12 +182,6 @@ class SimulationData:
         pdf = self.df[self.df['Passenger ID'].notna()].copy()
         pdf['Passenger ID'] = pdf['Passenger ID'].astype(int)
 
-        # Build per-passenger timelines.
-        # Passenger IDs collide across daily log files because the sim resets
-        # its ID counter each day (day 2 PID 500 != day 1 PID 500). We group
-        # by PID, sort by time, then split on every Arrival event to separate them.
-        next_visual_id = 0
-
         for pid, group in pdf.groupby('Passenger ID'):
             group = group.copy()
             group['_event_order'] = group['Event'].map(
@@ -198,66 +192,56 @@ class SimulationData:
             if not rows:
                 continue
 
-            # Split on Arrival events to separate colliding IDs
-            chunks: List[List[dict]] = []
+            gate_type = str(rows[0].get('Gate Type', ''))
+            seat_type = str(rows[0].get('Seat Type', ''))
+            bags_raw = rows[0].get('Bags')
+            bags = int(bags_raw) if pd.notna(bags_raw) else 0
+            cost_raw = rows[0].get('Cost')
+            cost = float(cost_raw) if pd.notna(cost_raw) else 0.0
+
+            # Deduplicate gate bug: keep first Gate Arrival / Boarding only
+            seen_gate_arrival = False
+            seen_boarding = False
+            events: List[PassengerEvent] = []
             for row in rows:
-                if row['Event'] == 'Arrival':
-                    chunks.append([row])
-                elif chunks:
-                    chunks[-1].append(row)
+                ev_name = str(row['Event'])
+                if ev_name == 'Gate Arrival':
+                    if seen_gate_arrival:
+                        continue
+                    seen_gate_arrival = True
+                elif ev_name == 'Boarding':
+                    if seen_boarding:
+                        continue
+                    seen_boarding = True
 
-            for chunk in chunks:
-                gate_type = str(chunk[0].get('Gate Type', ''))
-                seat_type = str(chunk[0].get('Seat Type', ''))
-                bags_raw = chunk[0].get('Bags')
-                bags = int(bags_raw) if pd.notna(bags_raw) else 0
-                cost_raw = chunk[0].get('Cost')
-                cost = float(cost_raw) if pd.notna(cost_raw) else 0.0
+                t = float(row['Time'])
+                dur = row.get('Duration')
+                end_t = t + float(dur) if pd.notna(dur) else t
+                station = str(row['Station']) if pd.notna(row.get('Station')) else None
+                events.append(PassengerEvent(
+                    time=t,
+                    end_time=end_t,
+                    event=ev_name,
+                    station=station,
+                ))
 
-                # Deduplicate gate bug: keep first Gate Arrival / Boarding only
-                seen_gate_arrival = False
-                seen_boarding = False
-                events: List[PassengerEvent] = []
-                for row in chunk:
-                    ev_name = str(row['Event'])
-                    if ev_name == 'Gate Arrival':
-                        if seen_gate_arrival:
-                            continue
-                        seen_gate_arrival = True
-                    elif ev_name == 'Boarding':
-                        if seen_boarding:
-                            continue
-                        seen_boarding = True
+            if not events:
+                continue
 
-                    t = float(row['Time'])
-                    dur = row.get('Duration')
-                    end_t = t + float(dur) if pd.notna(dur) else t
-                    station = str(row['Station']) if pd.notna(row.get('Station')) else None
-                    events.append(PassengerEvent(
-                        time=t,
-                        end_time=end_t,
-                        event=ev_name,
-                        station=station,
-                    ))
+            self._compute_visual_times(events)
 
-                if not events:
-                    continue
-
-                self._compute_visual_times(events)
-
-                timeline = PassengerTimeline(
-                    passenger_id=next_visual_id,
-                    gate_type=gate_type,
-                    seat_type=seat_type,
-                    bags=bags,
-                    cost=cost,
-                    events=events,
-                    arrival_time=events[0].time,
-                    departure_time=events[-1].end_time,
-                    visual_departure_time=events[-1].visual_end_time,
-                )
-                self.passengers[next_visual_id] = timeline
-                next_visual_id += 1
+            timeline = PassengerTimeline(
+                passenger_id=pid,
+                gate_type=gate_type,
+                seat_type=seat_type,
+                bags=bags,
+                cost=cost,
+                events=events,
+                arrival_time=events[0].time,
+                departure_time=events[-1].end_time,
+                visual_departure_time=events[-1].visual_end_time,
+            )
+            self.passengers[pid] = timeline
 
         # Build sorted arrival list for efficient range queries
         self._sorted_arrivals = sorted(

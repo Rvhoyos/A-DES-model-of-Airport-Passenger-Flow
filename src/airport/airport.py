@@ -72,7 +72,7 @@ class Airport:
         resumes at the next line. This is how SimPy models sequential steps:
         the passenger "waits" at each station without blocking other passengers.
         """
-        print(f"Processing passenger {passenger.arrival_time}")
+        print(f"Processing passenger {passenger.id}")
         self.logger.log_event(passenger.arrival_time, 'Process Start', self.env.now,
                               f"Starting process for passenger",
                               passenger_id=passenger.id)
@@ -89,7 +89,7 @@ class Airport:
         counter_resources = [c.counter for c in counters]
         counter = self._find_shortest_queue(counters, counter_resources)
         yield self.env.process(counter.handle_check_in(passenger))
-        print(f"Passenger {passenger.arrival_time} has checked in")
+        print(f"Passenger {passenger.id} has checked in")
 
         # --- STAGE 2: SECURITY SCREENING ---
         # Each SecurityScreening station has two simpy.Resources:
@@ -101,7 +101,7 @@ class Airport:
             machines = [s.provincial_machine for s in self.security_screening]
         chosen_screening = self._find_shortest_queue(self.security_screening, machines)
         yield self.env.process(chosen_screening.screen_passenger(passenger))
-        print(f"Passenger {passenger.arrival_time} has cleared security screening")
+        print(f"Passenger {passenger.id} has cleared security screening")
 
         # --- STAGE 3: GATE ---
         # Route passenger to one gate via round-robin alternation.
