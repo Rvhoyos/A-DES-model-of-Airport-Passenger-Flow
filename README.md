@@ -26,8 +26,6 @@ Specific operational constraints that make this interesting:
 
 ## How It Works
 
-This is a forward **Monte Carlo simulation** walking a **Markov chain** - each passenger's next state depends only on their current state and random service times. It is not MCMC (there is no acceptance rule and we are not sampling from an intractable distribution). We are observing system behavior under stochastic inputs.
-
 The simulation uses SimPy's process-based discrete event model:
 - Each passenger is a SimPy **process** (a generator that yields events)
 - Stations wrap SimPy **Resources** (limited capacity servers with automatic queuing)

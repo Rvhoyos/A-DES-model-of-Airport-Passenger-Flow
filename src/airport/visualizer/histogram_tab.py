@@ -152,6 +152,41 @@ class HistogramTab(QScrollArea):
         ax7.set_xlabel('')
         self.layout_.addWidget(_make_canvas(fig7))
 
+        # 8. Number of bags distribution (geometric)
+        df_bags = df_arrivals[['Bags', 'Gate Type']].dropna()
+        fig8 = Figure(figsize=(10, 3.5), dpi=100)
+        ax8 = fig8.add_subplot(111)
+        if len(df_bags) > 0:
+            commuter_bags = df_bags[df_bags['Gate Type'] == 'commuter']['Bags'].astype(int)
+            provincial_bags = df_bags[df_bags['Gate Type'] == 'provincial']['Bags'].astype(int)
+            max_bags = int(df_bags['Bags'].max())
+            k = np.arange(0, max_bags + 1)
+            width = 0.35
+
+            if len(commuter_bags) > 0:
+                counts_c = np.bincount(commuter_bags, minlength=max_bags + 1)
+                freq_c = counts_c / counts_c.sum()
+                ax8.bar(k - width / 2, freq_c, width, color='#4CAF50', edgecolor=MPL_HIST_EDGE,
+                        alpha=0.85, label='Commuter (data)')
+                # Theoretical: Geom(p=0.6) - 1, so P(X=k) = 0.6 * 0.4^k
+                pmf_c = 0.6 * (0.4 ** k)
+                ax8.plot(k, pmf_c, 'o-', color='#A5D6A7', markersize=4, linewidth=1.5,
+                         label='Geom(p=0.6)-1')
+
+            if len(provincial_bags) > 0:
+                counts_p = np.bincount(provincial_bags, minlength=max_bags + 1)
+                freq_p = counts_p / counts_p.sum()
+                ax8.bar(k + width / 2, freq_p, width, color='#2196F3', edgecolor=MPL_HIST_EDGE,
+                        alpha=0.85, label='Provincial (data)')
+                # Theoretical: Geom(p=0.8) - 1, so P(X=k) = 0.8 * 0.2^k
+                pmf_p = 0.8 * (0.2 ** k)
+                ax8.plot(k, pmf_p, 's-', color='#90CAF9', markersize=4, linewidth=1.5,
+                         label='Geom(p=0.8)-1')
+
+            ax8.legend(facecolor=MPL_AXES_BG, edgecolor=MPL_GRID, labelcolor=MPL_TEXT, fontsize=8)
+        _style_ax(ax8, 'Number of Bags Distribution', 'Bags', 'Proportion')
+        self.layout_.addWidget(_make_canvas(fig8))
+
     @staticmethod
     def _station_chart_color(station: str) -> str:
         s = station.lower()
