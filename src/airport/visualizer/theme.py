@@ -66,9 +66,9 @@ def passenger_color(gate_type: str, seat_type: str) -> QColor:
 
 def station_border_color(station_name: str) -> QColor:
     name = station_name.lower()
-    if name.endswith(' b') and 'security' in name:
+    if name.endswith(' p') and 'security' in name:
         return COLOR_PROVINCIAL_BIZ
-    if 'security' in name:
+    if name.endswith(' r') and 'security' in name:
         return COLOR_SECURITY
     if 'regional' in name:
         return COLOR_REGIONAL_GATE

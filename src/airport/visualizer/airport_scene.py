@@ -292,16 +292,16 @@ class AirportScene(QGraphicsScene):
             checkin = cats.get('business_checkin', []) + cats.get('coach_checkin', [])
             self._place_alternating(checkin, COL_CHECKIN)
 
-        # Security: split each station into business/coach sub-positions
+        # Security: split each station into provincial/regional sub-positions
         self._security_stations = set(cats.get('security', []))
         for i, name in enumerate(cats.get('security', [])):
             side = -1 if i % 2 == 0 else 1
             tier = i // 2
             base_y = CORRIDOR_Y + side * (65 + tier * 85)
-            self.station_positions[f'{name} B'] = QPointF(COL_SECURITY - 35, base_y)
-            self.station_positions[f'{name} C'] = QPointF(COL_SECURITY + 35, base_y)
-            self._queue_dirs[f'{name} B'] = side
-            self._queue_dirs[f'{name} C'] = side
+            self.station_positions[f'{name} P'] = QPointF(COL_SECURITY - 35, base_y)
+            self.station_positions[f'{name} R'] = QPointF(COL_SECURITY + 35, base_y)
+            self._queue_dirs[f'{name} P'] = side
+            self._queue_dirs[f'{name} R'] = side
 
         # Gates: regional fan above corridor, provincial fan below
         # #1 of each type is closest to the corridor
@@ -335,10 +335,10 @@ class AirportScene(QGraphicsScene):
             self.station_positions[name] = QPointF(x, y)
             self._queue_dirs[name] = direction  # station side: queue grows toward corridor
 
-    def _resolve_station(self, station: Optional[str], seat_type: str) -> Optional[str]:
-        """Map CSV station name to visual position. Splits security by seat type."""
+    def _resolve_station(self, station: Optional[str], gate_type: str) -> Optional[str]:
+        """Map CSV station name to visual position. Splits security by gate type."""
         if station in self._security_stations:
-            return f'{station} B' if seat_type == 'business' else f'{station} C'
+            return f'{station} P' if gate_type == 'provincial' else f'{station} R'
         return station
 
     # ===================================================================
@@ -528,13 +528,13 @@ class AirportScene(QGraphicsScene):
             tl = self.data.passengers[pid]
             # Queue events have no duration, so fraction is mid-range - force to overflow
             if state.event == 'Queue':
-                at_station = self._resolve_station(state.current_station or 'Entrance', tl.seat_type)
+                at_station = self._resolve_station(state.current_station or 'Entrance', tl.gate_type)
                 overflow_pax[at_station].append((pid, state.station_arrival_time))
             elif state.fraction <= 0.01 or state.fraction >= 0.99:
                 at_station = state.current_station if state.fraction <= 0.01 else state.next_station
                 if at_station is None:
                     at_station = 'Entrance'
-                at_station = self._resolve_station(at_station, tl.seat_type)
+                at_station = self._resolve_station(at_station, tl.gate_type)
                 station_pax[at_station].append((pid, state.station_arrival_time))
             else:
                 transit_pax[pid] = state
@@ -556,8 +556,8 @@ class AirportScene(QGraphicsScene):
 
             if pid in transit_pax:
                 ts = transit_pax[pid]
-                src = self._resolve_station(ts.current_station, tl.seat_type)
-                dst = self._resolve_station(ts.next_station, tl.seat_type)
+                src = self._resolve_station(ts.current_station, tl.gate_type)
+                dst = self._resolve_station(ts.next_station, tl.gate_type)
                 path = self._build_path(src, dst)
                 pos = interpolate_along_path(path, ts.fraction)
             else:

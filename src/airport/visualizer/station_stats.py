@@ -46,7 +46,7 @@ class CategoryMetrics:
 
 
 # Capacity per station type (total resource slots).
-# Security: 1 business + 2 coach machines = 3
+# Security: 1 provincial + 2 regional machines = 3
 # Check-in counters: 1 resource each
 # Gates: boarding is instant, utilization not meaningful
 _CAPACITY = {

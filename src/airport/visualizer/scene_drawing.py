@@ -118,7 +118,7 @@ def draw_station_rects(scene: AirportScene) -> None:
     """Draw rounded station rectangles with accent bar and queue area indicator."""
     for name, center in scene.station_positions.items():
         border_col = station_border_color(name)
-        is_small = name.endswith(' B') or name.endswith(' C')
+        is_small = name.endswith(' P') or name.endswith(' R')
         w = STATION_W_SMALL if is_small else STATION_W
         x = center.x() - w / 2
         y = center.y() - STATION_H / 2
@@ -158,7 +158,7 @@ def draw_station_rects(scene: AirportScene) -> None:
         scene.addItem(accent)
 
         # Label (short name for split security sub-stations)
-        display_name = 'Business' if name.endswith(' B') else 'Coach' if name.endswith(' C') else name
+        display_name = 'Prov.' if name.endswith(' P') else 'Reg.' if name.endswith(' R') else name
         label = QGraphicsSimpleTextItem(display_name)
         label.setBrush(QBrush(TEXT_PRIMARY))
         label.setFont(FONT_LABEL)
