@@ -56,14 +56,22 @@ class RegionalGate(Gate):
         print(f"Handling regional passenger at time {start_time}")  # Debugging print statement
 
         if current_flight and current_flight.available_seats['coach'] > 0:
-            current_flight.board_passenger(passenger)
-            service_time = self.env.now - start_time  # Calculate total service time since arrival to boarding, always returns 0 since boarding is instant.
-            print(
-                f"A passenger boards the regional flight departing {current_flight.departure_time}, at time {start_time}. Service Time: {service_time} seconds")
-            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now,
-                                  f'Boarded regional flight successfully. Service Time: {service_time} seconds',
-                                  passenger_id=passenger.id, station=self.gate_name,
-                                  duration=service_time)
+            yield self.env.process(self.board_passenger_queue(passenger)) ## waits until they go through the queue
+            if(current_flight.board_passenger(passenger) == True):
+                service_time = self.env.now - start_time  # Calculate total service time since arrival to boarding, always returns 0 since boarding is instant.
+                print(
+                    f"A passenger boards the regional flight departing {current_flight.departure_time}, at time {start_time}. Service Time: {service_time} seconds")
+                self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now,
+                                    f'Boarded regional flight successfully. Service Time: {service_time} seconds',
+                                    passenger_id=passenger.id, station=self.gate_name,
+                                    duration=service_time)
+            else:
+                print(f"Flight at {current_flight.departure_time} is full. A passenger is queued for next flight.")
+                passenger.queue_time = self.env.now
+                yield self.queue.put(passenger)
+                self.logger.log_event(passenger.arrival_time, 'Queue', self.env.now,
+                                    'Queued for next regional flight',
+                                    passenger_id=passenger.id, station=self.gate_name)
         else:
             print(f"Flight at {current_flight.departure_time} is full. A passenger is queued for next flight.")
             passenger.queue_time = self.env.now
@@ -86,13 +94,16 @@ class RegionalGate(Gate):
             if current_flight and current_flight.available_seats['coach'] > 0:
                 passenger = yield self.queue.get()
                 waiting_time = self.env.now - passenger.queue_time
-                current_flight.board_passenger(passenger)
-                print(
-                    f"A queued passenger boards the regional flight departing {current_flight.departure_time}, "
-                    f"at time {current_time}. Wait: {waiting_time:.0f}s")
-                self.logger.log_event(passenger.arrival_time, 'Boarding from Queue', self.env.now,
-                                      f'Boarded from queue. Wait: {waiting_time:.0f}s',
-                                      passenger_id=passenger.id, station=self.gate_name,
-                                      duration=waiting_time)
+                yield self.env.process(self.board_passenger_queue(passenger)) ## waits until they go through the queue
+                if(current_flight.board_passenger(passenger) == True):
+                    print(
+                        f"A queued passenger boards the regional flight departing {current_flight.departure_time}, "
+                        f"at time {current_time}. Wait: {waiting_time:.0f}s")
+                    self.logger.log_event(passenger.arrival_time, 'Boarding from Queue', self.env.now,
+                                          f'Boarded from queue. Wait: {waiting_time:.0f}s',
+                                          passenger_id=passenger.id, station=self.gate_name,
+                                          duration=waiting_time)
+                else:
+                    yield self.queue.put(passenger)
             else:
                 yield self.env.timeout(1)  # Wait before checking the queue again

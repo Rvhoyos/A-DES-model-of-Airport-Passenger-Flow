@@ -54,11 +54,23 @@ class ProvincialGate(Gate):
         print(f"Handling provincial passenger at time {self.env.now}")  # Debugging print statement
 
         if current_flight and current_flight.available_seats[passenger.seat_type] > 0:
-            current_flight.board_passenger(passenger)
-            print(f"A passenger boards the flight {current_flight} at time {current_time}.")
-            self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'Boarded flight successfully',
-                                  passenger_id=passenger.id, station=self.gate_name)
-
+            ## board_passenger_queue already yields, yielding it again requires wrapping in a simpy proces.
+            yield self.env.process(self.board_passenger_queue(passenger)) ## waits until they go through the queue
+            if(current_flight.board_passenger(passenger) == True):
+                print(f"A passenger boards the flight {current_flight} at time {current_time}.")
+                self.logger.log_event(passenger.arrival_time, 'Boarding', self.env.now, 'Boarded flight successfully',
+                                    passenger_id=passenger.id, station=self.gate_name)
+            else:
+                print(f"No seats available at time {current_time}.")
+                if passenger.arrival_time <= current_flight.departure_time - 90 * 60:
+                    print(f"A passenger receives a refund at time {current_time} and has left the airport.")
+                    self.logger.log_event(passenger.arrival_time, 'Refund', self.env.now,
+                                        'Received refund and left airport',
+                                        passenger_id=passenger.id, station=self.gate_name)
+                else:
+                    print(f"A passenger was late to the airport at{current_flight.departure_time} and left the airport.")
+                    self.logger.log_event(passenger.arrival_time, 'Late', self.env.now, 'Late to airport and left',
+                                        passenger_id=passenger.id, station=self.gate_name)
         else:
             print(f"No seats available at time {current_time}.")
             if passenger.arrival_time <= current_flight.departure_time - 90 * 60:

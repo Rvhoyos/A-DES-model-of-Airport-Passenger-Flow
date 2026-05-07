@@ -1,5 +1,7 @@
+from pandas.io import parsers
 from abc import ABC, abstractmethod
-
+import simpy
+from .RVG.randomNumberGenerator import ExponentialRandomNumberGenerator
 
 class Gate(ABC):
     """
@@ -14,8 +16,8 @@ class Gate(ABC):
         self.ctx = ctx
         self.env = ctx.env
         self.logger = ctx.logger
-        self.current_flight = None  # todo set flight time just like the schedule is set?? prof feedback: simulation...
-        # results are correct...?
+        self.current_flight = None 
+        self.boarding_bridge = simpy.PriorityResource(self.env, capacity=1)
 
     @abstractmethod
     def set_schedule(self):
@@ -58,3 +60,24 @@ class Gate(ABC):
             if delay > 0:
                 yield self.env.timeout(delay)
             flight.departure_log(self.logger)
+   
+    def board_passenger_queue(self, passenger):
+        ## Simpy resource that handles passenger boarding / walking the bridge
+        ## Use resource priortiy to give provincial business class first access before coach passengers.
+        ## Priority based on seat type
+        if(passenger.seat_type == "business"):
+            priority = 0
+        else:
+            priority = 1
+
+        request = self.boarding_bridge.request(priority=priority)
+        yield request ## wait until request is granted
+        ## once granted, generate a service time based on bags (30 seconds per bag)
+        if(passenger.num_bags !=0):
+            service_time = passenger.num_bags*ExponentialRandomNumberGenerator(30).generate()
+        else:
+            service_time = ExponentialRandomNumberGenerator(1/30).generate()
+        yield self.env.timeout(service_time)
+        self.boarding_bridge.release(request)
+        ## releases the resouce since passenger has been serviced. 
+
